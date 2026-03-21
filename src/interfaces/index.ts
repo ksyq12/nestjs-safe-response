@@ -1,0 +1,67 @@
+import { ModuleMetadata } from '@nestjs/common';
+
+export interface SafeResponseModuleOptions {
+  /** Include timestamp field in responses (default: true) */
+  timestamp?: boolean;
+  /** Include path field in responses (default: true) */
+  path?: boolean;
+  /** Custom error code mapper function */
+  errorCodeMapper?: (exception: unknown) => string | undefined;
+  /** Custom date formatter function (default: ISO 8601) */
+  dateFormatter?: () => string;
+}
+
+export interface SafeResponseModuleAsyncOptions
+  extends Pick<ModuleMetadata, 'imports'> {
+  useFactory: (
+    ...args: any[]
+  ) => Promise<SafeResponseModuleOptions> | SafeResponseModuleOptions;
+  inject?: any[];
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface ResponseMeta {
+  pagination?: PaginationMeta;
+  message?: string;
+}
+
+export interface SafeSuccessResponse<T = unknown> {
+  success: true;
+  statusCode: number;
+  data: T;
+  meta?: ResponseMeta;
+  timestamp?: string;
+  path?: string;
+}
+
+export interface SafeErrorResponse {
+  success: false;
+  statusCode: number;
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+  timestamp?: string;
+  path?: string;
+}
+
+export interface PaginatedOptions {
+  defaultLimit?: number;
+  maxLimit?: number;
+}
+
+export interface PaginatedResult<T = unknown> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
