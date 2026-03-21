@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, map } from 'rxjs';
-import { Request } from 'express';
 import {
   SAFE_RESPONSE_OPTIONS,
   RAW_RESPONSE_KEY,
@@ -33,6 +32,10 @@ export class SafeResponseInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    if (context.getType() !== 'http') {
+      return next.handle();
+    }
+
     const isRaw = this.reflector.get<boolean>(
       RAW_RESPONSE_KEY,
       context.getHandler(),
@@ -52,8 +55,9 @@ export class SafeResponseInterceptor implements NestInterceptor {
       context.getHandler(),
     );
 
-    const request = context.switchToHttp().getRequest<Request>();
-    const statusCode = context.switchToHttp().getResponse().statusCode;
+    const httpCtx = context.switchToHttp();
+    const request = httpCtx.getRequest();
+    const statusCode = httpCtx.getResponse().statusCode;
 
     return next.handle().pipe(
       map((data) => {

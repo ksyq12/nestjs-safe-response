@@ -8,30 +8,46 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
 import { SafeExceptionFilter } from './safe-exception.filter';
 import { SafeResponseModuleOptions } from '../interfaces';
 
-function createMockArgumentsHost(url = '/test', method = 'GET') {
-  const jsonFn = jest.fn();
-  const statusFn = jest.fn().mockReturnValue({ json: jsonFn });
+function createMockHttpAdapterHost(url = '/test', method = 'GET') {
+  const replyFn = jest.fn();
 
   return {
-    host: {
-      switchToHttp: () => ({
-        getRequest: () => ({ url, method }),
-        getResponse: () => ({ status: statusFn }),
-      }),
-    } as unknown as ArgumentsHost,
-    statusFn,
-    jsonFn,
+    adapterHost: {
+      httpAdapter: {
+        reply: replyFn,
+        getRequestUrl: () => url,
+        getRequestMethod: () => method,
+      },
+    } as unknown as HttpAdapterHost,
+    replyFn,
   };
+}
+
+function createMockArgumentsHost(contextType = 'http') {
+  const mockRequest = {};
+  const mockResponse = {};
+
+  return {
+    getType: () => contextType,
+    switchToHttp: () => ({
+      getRequest: () => mockRequest,
+      getResponse: () => mockResponse,
+    }),
+  } as unknown as ArgumentsHost;
 }
 
 describe('SafeExceptionFilter', () => {
   let loggerErrorSpy: jest.SpyInstance;
 
-  function createFilter(options: SafeResponseModuleOptions = {}) {
-    return new SafeExceptionFilter(options);
+  function createFilter(
+    adapterHost: HttpAdapterHost,
+    options: SafeResponseModuleOptions = {},
+  ) {
+    return new SafeExceptionFilter(adapterHost, options);
   }
 
   beforeEach(() => {
@@ -44,76 +60,118 @@ describe('SafeExceptionFilter', () => {
     loggerErrorSpy.mockRestore();
   });
 
+  // ─── Context Type Guard ───
+
+  describe('컨텍스트 타입 가드', () => {
+    it('contextType이 rpc이면 예외를 그대로 throw', () => {
+      const { adapterHost } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost('rpc');
+      const error = new Error('rpc error');
+
+      expect(() => filter.catch(error, host)).toThrow(error);
+    });
+
+    it('contextType이 ws이면 예외를 그대로 throw', () => {
+      const { adapterHost } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost('ws');
+      const error = new NotFoundException();
+
+      expect(() => filter.catch(error, host)).toThrow(error);
+    });
+
+    it('contextType이 http이면 정상 에러 응답', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost('http');
+
+      filter.catch(new BadRequestException(), host);
+
+      expect(replyFn).toHaveBeenCalled();
+      const body = replyFn.mock.calls[0][1];
+      expect(body.success).toBe(false);
+    });
+  });
+
   // ─── HttpException 처리 ───
 
   describe('HttpException 처리', () => {
     it('BadRequestException(string) → statusCode: 400, message: 해당 문자열', () => {
-      const filter = createFilter();
-      const { host, statusFn, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException('Invalid input'), host);
 
-      expect(statusFn).toHaveBeenCalledWith(400);
-      const body = jsonFn.mock.calls[0][0];
-      expect(body.statusCode).toBe(400);
+      const [, body, status] = replyFn.mock.calls[0];
+      expect(status).toBe(400);
       expect(body.error.message).toBe('Invalid input');
       expect(body.error.code).toBe('BAD_REQUEST');
     });
 
     it('NotFoundException → statusCode: 404, code: NOT_FOUND', () => {
-      const filter = createFilter();
-      const { host, statusFn, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new NotFoundException('User not found'), host);
 
-      expect(statusFn).toHaveBeenCalledWith(404);
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('NOT_FOUND');
+      const [, body, status] = replyFn.mock.calls[0];
+      expect(status).toBe(404);
+      expect(body.error.code).toBe('NOT_FOUND');
     });
 
     it('UnauthorizedException → statusCode: 401, code: UNAUTHORIZED', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new UnauthorizedException(), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('UNAUTHORIZED');
-      expect(jsonFn.mock.calls[0][0].statusCode).toBe(401);
+      const [, body, status] = replyFn.mock.calls[0];
+      expect(body.error.code).toBe('UNAUTHORIZED');
+      expect(status).toBe(401);
     });
 
     it('ForbiddenException → statusCode: 403, code: FORBIDDEN', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new ForbiddenException(), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('FORBIDDEN');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('FORBIDDEN');
     });
 
     it('ConflictException → statusCode: 409, code: CONFLICT', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new ConflictException(), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('CONFLICT');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('CONFLICT');
     });
 
     it('HttpException(422) → code: UNPROCESSABLE_ENTITY', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new HttpException('Unprocessable', 422), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('UNPROCESSABLE_ENTITY');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('UNPROCESSABLE_ENTITY');
     });
 
     it('HttpException(429) → code: TOO_MANY_REQUESTS', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new HttpException('Rate limited', 429), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('TOO_MANY_REQUESTS');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('TOO_MANY_REQUESTS');
     });
   });
 
@@ -121,8 +179,9 @@ describe('SafeExceptionFilter', () => {
 
   describe('class-validator 에러 파싱', () => {
     it('message가 배열이면 → "Validation failed" + details', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
       const exception = new BadRequestException({
         message: ['email must be an email', 'name should not be empty'],
         error: 'Bad Request',
@@ -130,7 +189,7 @@ describe('SafeExceptionFilter', () => {
 
       filter.catch(exception, host);
 
-      const body = jsonFn.mock.calls[0][0];
+      const body = replyFn.mock.calls[0][1];
       expect(body.error.message).toBe('Validation failed');
       expect(body.error.details).toEqual([
         'email must be an email',
@@ -139,15 +198,16 @@ describe('SafeExceptionFilter', () => {
     });
 
     it('message가 string이면 → 그 string 사용, details 없음', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
       const exception = new BadRequestException({
         message: 'single error',
       });
 
       filter.catch(exception, host);
 
-      const body = jsonFn.mock.calls[0][0];
+      const body = replyFn.mock.calls[0][1];
       expect(body.error.message).toBe('single error');
       expect(body.error).not.toHaveProperty('details');
     });
@@ -157,34 +217,38 @@ describe('SafeExceptionFilter', () => {
 
   describe('비-HttpException', () => {
     it('일반 Error → statusCode: 500, INTERNAL_SERVER_ERROR', () => {
-      const filter = createFilter();
-      const { host, statusFn, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new Error('Something broke'), host);
 
-      expect(statusFn).toHaveBeenCalledWith(500);
-      const body = jsonFn.mock.calls[0][0];
+      const [, body, status] = replyFn.mock.calls[0];
+      expect(status).toBe(500);
       expect(body.error.code).toBe('INTERNAL_SERVER_ERROR');
       expect(body.error.message).toBe('Internal server error');
     });
 
     it('string throw → statusCode: 500', () => {
-      const filter = createFilter();
-      const { host, statusFn, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch('string error', host);
 
-      expect(statusFn).toHaveBeenCalledWith(500);
-      expect(jsonFn.mock.calls[0][0].error.message).toBe('Internal server error');
+      const [, body, status] = replyFn.mock.calls[0];
+      expect(status).toBe(500);
+      expect(body.error.message).toBe('Internal server error');
     });
 
     it('null throw → statusCode: 500', () => {
-      const filter = createFilter();
-      const { host, statusFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(null, host);
 
-      expect(statusFn).toHaveBeenCalledWith(500);
+      expect(replyFn.mock.calls[0][2]).toBe(500);
     });
   });
 
@@ -192,34 +256,37 @@ describe('SafeExceptionFilter', () => {
 
   describe('커스텀 에러 코드 매핑', () => {
     it('errorCodeMapper가 string 반환 → 커스텀 코드 사용', () => {
-      const filter = createFilter({
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
         errorCodeMapper: () => 'TOKEN_EXPIRED',
       });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const host = createMockArgumentsHost();
 
       filter.catch(new UnauthorizedException(), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('TOKEN_EXPIRED');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('TOKEN_EXPIRED');
     });
 
     it('errorCodeMapper가 undefined 반환 → 기본 매핑 fallback', () => {
-      const filter = createFilter({
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
         errorCodeMapper: () => undefined,
       });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const host = createMockArgumentsHost();
 
       filter.catch(new NotFoundException(), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('NOT_FOUND');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('NOT_FOUND');
     });
 
     it('DEFAULT_ERROR_CODE_MAP에 없는 statusCode → INTERNAL_SERVER_ERROR', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new HttpException("I'm a teapot", 418), host);
 
-      expect(jsonFn.mock.calls[0][0].error.code).toBe('INTERNAL_SERVER_ERROR');
+      expect(replyFn.mock.calls[0][1].error.code).toBe('INTERNAL_SERVER_ERROR');
     });
   });
 
@@ -227,8 +294,9 @@ describe('SafeExceptionFilter', () => {
 
   describe('5xx 로깅', () => {
     it('500 에러 + Error 인스턴스 → Logger.error() 호출, stack 포함', () => {
-      const filter = createFilter();
-      const { host } = createMockArgumentsHost('/api/crash', 'POST');
+      const { adapterHost } = createMockHttpAdapterHost('/api/crash', 'POST');
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
       const error = new Error('crash');
 
       filter.catch(error, host);
@@ -240,8 +308,9 @@ describe('SafeExceptionFilter', () => {
     });
 
     it('500 에러 + string throw → Logger.error() 호출, stack undefined', () => {
-      const filter = createFilter();
-      const { host } = createMockArgumentsHost();
+      const { adapterHost } = createMockHttpAdapterHost('/test', 'GET');
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch('string error', host);
 
@@ -252,8 +321,9 @@ describe('SafeExceptionFilter', () => {
     });
 
     it('400 에러 → Logger.error() 호출되지 않음', () => {
-      const filter = createFilter();
-      const { host } = createMockArgumentsHost();
+      const { adapterHost } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
@@ -265,32 +335,35 @@ describe('SafeExceptionFilter', () => {
 
   describe('응답 구조', () => {
     it('details 없으면 error 객체에 details 키 자체가 없음', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new NotFoundException('Not found'), host);
 
-      const body = jsonFn.mock.calls[0][0];
+      const body = replyFn.mock.calls[0][1];
       expect(body.error).not.toHaveProperty('details');
     });
 
     it('success는 항상 false', () => {
-      const filter = createFilter();
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0].success).toBe(false);
+      expect(replyFn.mock.calls[0][1].success).toBe(false);
     });
 
-    it('response.status(statusCode).json(body) 호출 확인', () => {
-      const filter = createFilter();
-      const { host, statusFn, jsonFn } = createMockArgumentsHost();
+    it('httpAdapter.reply(response, body, statusCode) 호출 확인', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
 
       filter.catch(new NotFoundException(), host);
 
-      expect(statusFn).toHaveBeenCalledWith(404);
-      expect(jsonFn).toHaveBeenCalledTimes(1);
+      expect(replyFn).toHaveBeenCalledTimes(1);
+      expect(replyFn.mock.calls[0][2]).toBe(404);
     });
   });
 
@@ -298,50 +371,55 @@ describe('SafeExceptionFilter', () => {
 
   describe('옵션', () => {
     it('timestamp: true → timestamp 포함', () => {
-      const filter = createFilter({ timestamp: true });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { timestamp: true });
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0]).toHaveProperty('timestamp');
+      expect(replyFn.mock.calls[0][1]).toHaveProperty('timestamp');
     });
 
     it('timestamp: false → timestamp 없음', () => {
-      const filter = createFilter({ timestamp: false });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { timestamp: false });
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0]).not.toHaveProperty('timestamp');
+      expect(replyFn.mock.calls[0][1]).not.toHaveProperty('timestamp');
     });
 
     it('path: true → path 포함', () => {
-      const filter = createFilter({ path: true });
-      const { host, jsonFn } = createMockArgumentsHost('/api/users');
+      const { adapterHost, replyFn } = createMockHttpAdapterHost('/api/users');
+      const filter = createFilter(adapterHost, { path: true });
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0].path).toBe('/api/users');
+      expect(replyFn.mock.calls[0][1].path).toBe('/api/users');
     });
 
     it('path: false → path 없음', () => {
-      const filter = createFilter({ path: false });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { path: false });
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0]).not.toHaveProperty('path');
+      expect(replyFn.mock.calls[0][1]).not.toHaveProperty('path');
     });
 
     it('dateFormatter → 커스텀 포맷 사용', () => {
-      const filter = createFilter({
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
         dateFormatter: () => '2025-01-01T00:00:00Z',
       });
-      const { host, jsonFn } = createMockArgumentsHost();
+      const host = createMockArgumentsHost();
 
       filter.catch(new BadRequestException(), host);
 
-      expect(jsonFn.mock.calls[0][0].timestamp).toBe('2025-01-01T00:00:00Z');
+      expect(replyFn.mock.calls[0][1].timestamp).toBe('2025-01-01T00:00:00Z');
     });
   });
 });

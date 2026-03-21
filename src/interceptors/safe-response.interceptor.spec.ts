@@ -9,9 +9,11 @@ function createMockExecutionContext(overrides?: {
   url?: string;
   statusCode?: number;
   handler?: () => void;
+  contextType?: string;
 }): ExecutionContext {
   const handler = overrides?.handler ?? (() => {});
   return {
+    getType: () => overrides?.contextType ?? 'http',
     getHandler: () => handler,
     getClass: () => ({}),
     switchToHttp: () => ({
@@ -34,6 +36,50 @@ describe('SafeResponseInterceptor', () => {
 
   beforeEach(() => {
     reflector = new Reflector();
+  });
+
+  // ─── Context Type Guard ───
+
+  describe('컨텍스트 타입 가드', () => {
+    it('contextType이 rpc이면 래핑 없이 원본 반환', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ contextType: 'rpc' });
+      const data = { result: 'rpc-data' };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result).toEqual(data);
+      expect(result.success).toBeUndefined();
+    });
+
+    it('contextType이 ws이면 래핑 없이 원본 반환', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ contextType: 'ws' });
+      const data = { event: 'message' };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result).toEqual(data);
+      expect(result.success).toBeUndefined();
+    });
+
+    it('contextType이 http이면 정상 래핑', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ contextType: 'http' });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.success).toBe(true);
+    });
   });
 
   // ─── 기본 응답 래핑 ───

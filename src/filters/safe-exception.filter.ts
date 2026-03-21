@@ -7,7 +7,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { HttpAdapterHost } from '@nestjs/core';
 import { SAFE_RESPONSE_OPTIONS, DEFAULT_ERROR_CODE_MAP } from '../constants';
 import { SafeResponseModuleOptions, SafeErrorResponse } from '../interfaces';
 
@@ -16,15 +16,20 @@ export class SafeExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(SafeExceptionFilter.name);
 
   constructor(
+    private readonly httpAdapterHost: HttpAdapterHost,
     @Optional()
     @Inject(SAFE_RESPONSE_OPTIONS)
     private readonly options: SafeResponseModuleOptions = {},
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
+    if (host.getType() !== 'http') {
+      throw exception;
+    }
+
+    const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest();
 
     let statusCode = 500;
     let message = 'Internal server error';
@@ -58,9 +63,12 @@ export class SafeExceptionFilter implements ExceptionFilter {
     }
 
     // Log 5xx errors with stack trace
+    const requestUrl = httpAdapter.getRequestUrl(request);
+    const requestMethod = httpAdapter.getRequestMethod(request);
+
     if (statusCode >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} ${statusCode}`,
+        `${requestMethod} ${requestUrl} ${statusCode}`,
         exception instanceof Error ? exception.stack : undefined,
       );
     }
@@ -85,9 +93,9 @@ export class SafeExceptionFilter implements ExceptionFilter {
     }
 
     if (includePath) {
-      body.path = request.url;
+      body.path = requestUrl;
     }
 
-    response.status(statusCode).json(body);
+    httpAdapter.reply(ctx.getResponse(), body, statusCode);
   }
 }
