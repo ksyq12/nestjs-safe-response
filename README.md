@@ -20,6 +20,8 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 - **class-validator support** — validation errors parsed into `details` array with "Validation failed" message
 - **Custom error codes** — map exceptions to machine-readable codes via `errorCodeMapper`
 - **Opt-out per route** — `@RawResponse()` skips wrapping for health checks, SSE, file downloads
+- **Platform-agnostic** — works with both Express and Fastify adapters out of the box
+- **Context-safe** — automatically skips wrapping for non-HTTP contexts (RPC, WebSocket)
 - **Dynamic Module** — `register()` / `registerAsync()` with full DI support
 
 ## Installation
@@ -47,6 +49,22 @@ export class AppModule {}
 ```
 
 That's it. All routes now return standardized responses.
+
+### With Fastify
+
+Works the same way — no extra configuration needed:
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { AppModule } from './app.module';
+
+const app = await NestFactory.create<NestFastifyApplication>(
+  AppModule,
+  new FastifyAdapter(),
+);
+await app.listen(3000);
+```
 
 ## Response Format
 
@@ -209,6 +227,7 @@ Override with `errorCodeMapper` option.
 | Dependency | Version |
 |------------|---------|
 | NestJS | v10, v11 |
+| Platform | Express, Fastify |
 | @nestjs/swagger | v7, v8, v11 |
 | Node.js | >= 18 |
 | RxJS | v7 |

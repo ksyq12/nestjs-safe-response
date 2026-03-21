@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-22
+
+### Changed
+
+- **Platform-agnostic**: removed Express type imports from Interceptor and Filter — now works with both Express and Fastify adapters
+- **HttpAdapterHost**: Filter now uses `httpAdapter.reply()` instead of Express-specific `response.status().json()`
+- **Context type guard**: Interceptor and Filter skip wrapping for non-HTTP contexts (RPC, WebSocket) instead of crashing
+- **Build config**: separated `tsconfig.build.json` to exclude spec files from dist (package size reduced 51%)
+
+### Added
+
+- Fastify E2E test suite (7 cases)
+- Context type guard unit tests (6 cases)
+
 ## [0.1.0] - 2026-03-21
 
 ### Added
@@ -28,4 +42,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NestJS v10 and v11 support
 - @nestjs/swagger v7, v8, and v11 support
 
+[0.2.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.2.0
 [0.1.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.1.0
