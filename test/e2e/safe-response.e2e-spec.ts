@@ -290,6 +290,52 @@ describe('SafeResponse E2E', () => {
     });
   });
 
+  // ─── 엣지 케이스: 비정형 데이터 ───
+
+  describe('엣지 케이스: 비정형 데이터', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppModule);
+    });
+
+    it('GET /test/edge-undefined → data 프로퍼티가 JSON에서 생략됨', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/edge-undefined')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body).not.toHaveProperty('data');
+    });
+
+    it('GET /test/edge-null → data가 null', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/edge-null')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeNull();
+    });
+
+    it('GET /test/edge-buffer → Buffer가 JSON 직렬화됨 (문서 경고 근거)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/edge-buffer')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('type', 'Buffer');
+      expect(res.body.data).toHaveProperty('data');
+      expect(Array.isArray(res.body.data.data)).toBe(true);
+    });
+
+    it('GET /test/edge-empty-string → data가 빈 문자열', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/edge-empty-string')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBe('');
+    });
+  });
+
   // ─── @Exclude() 공존 ───
 
   describe('@Exclude() 공존', () => {

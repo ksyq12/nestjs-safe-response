@@ -100,4 +100,24 @@ export class TestController {
   userExclude() {
     return new UserResponse({ id: 1, name: 'Test', password: 'secret' });
   }
+
+  @Get('edge-undefined')
+  edgeUndefined() {
+    return undefined;
+  }
+
+  @Get('edge-null')
+  edgeNull() {
+    return null;
+  }
+
+  @Get('edge-buffer')
+  edgeBuffer() {
+    return Buffer.from('hello');
+  }
+
+  @Get('edge-empty-string')
+  edgeEmptyString() {
+    return '';
+  }
 }
