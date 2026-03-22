@@ -2,7 +2,7 @@ import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { of, lastValueFrom } from 'rxjs';
 import { SafeResponseInterceptor } from './safe-response.interceptor';
-import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY } from '../constants';
+import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY } from '../constants';
 import { SafeResponseModuleOptions } from '../interfaces';
 
 function createMockExecutionContext(overrides?: {
@@ -536,6 +536,69 @@ describe('SafeResponseInterceptor', () => {
           interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
         ),
       ).rejects.toThrow('Transform failed');
+    });
+  });
+
+  // ─── 성공 코드 매핑 ───
+
+  describe('성공 코드 매핑', () => {
+    it('@SuccessCode() 데코레이터 → 응답에 code 필드 포함', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === SUCCESS_CODE_KEY) return 'USER_CREATED';
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ statusCode: 201 });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.code).toBe('USER_CREATED');
+    });
+
+    it('successCodeMapper 전역 매퍼 → statusCode로 code 매핑', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor({
+        successCodeMapper: (statusCode) =>
+          statusCode === 200 ? 'OK' : statusCode === 201 ? 'CREATED' : undefined,
+      });
+      const ctx = createMockExecutionContext({ statusCode: 200 });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.code).toBe('OK');
+    });
+
+    it('@SuccessCode() 우선순위: 데코레이터가 전역 매퍼보다 우선', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === SUCCESS_CODE_KEY) return 'DECORATOR_CODE';
+        return undefined;
+      });
+      const interceptor = createInterceptor({
+        successCodeMapper: () => 'MAPPER_CODE',
+      });
+      const ctx = createMockExecutionContext();
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.code).toBe('DECORATOR_CODE');
+    });
+
+    it('성공 코드 미설정 → code 필드 생략', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result).not.toHaveProperty('code');
     });
   });
 });

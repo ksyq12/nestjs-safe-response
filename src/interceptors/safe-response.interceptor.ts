@@ -13,6 +13,7 @@ import {
   RAW_RESPONSE_KEY,
   PAGINATED_KEY,
   RESPONSE_MESSAGE_KEY,
+  SUCCESS_CODE_KEY,
 } from '../constants';
 import {
   SafeResponseModuleOptions,
@@ -55,6 +56,11 @@ export class SafeResponseInterceptor implements NestInterceptor {
       context.getHandler(),
     );
 
+    const successCode = this.reflector.get<string>(
+      SUCCESS_CODE_KEY,
+      context.getHandler(),
+    );
+
     const httpCtx = context.switchToHttp();
     const request = httpCtx.getRequest();
     const statusCode = httpCtx.getResponse().statusCode;
@@ -66,9 +72,16 @@ export class SafeResponseInterceptor implements NestInterceptor {
           data = this.options.transformResponse(data);
         }
 
+        // 성공 코드 해석: @SuccessCode() > successCodeMapper > 생략
+        let code: string | undefined = successCode;
+        if (!code && this.options.successCodeMapper) {
+          code = this.options.successCodeMapper(statusCode);
+        }
+
         const response: SafeSuccessResponse = {
           success: true,
           statusCode,
+          ...(code && { code }),
           data,
         };
 
