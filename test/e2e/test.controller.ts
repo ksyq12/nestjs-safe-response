@@ -10,6 +10,7 @@ import {
   RawResponse,
   Paginated,
   ResponseMessage,
+  SuccessCode,
 } from '../../src/decorators';
 
 @Controller('test')
@@ -64,5 +65,23 @@ export class TestController {
   @Get('error')
   error() {
     throw new Error('Unexpected error');
+  }
+
+  @Get('with-code')
+  @SuccessCode('FETCH_SUCCESS')
+  withCode() {
+    return { id: 1, name: 'Test User' };
+  }
+
+  @Post('with-code')
+  @HttpCode(201)
+  @SuccessCode('USER_CREATED')
+  createWithCode() {
+    return { id: 2, name: 'New User' };
+  }
+
+  @Get('transformed')
+  transformed() {
+    return { id: 1, name: 'Test', password: 'secret123' };
   }
 }

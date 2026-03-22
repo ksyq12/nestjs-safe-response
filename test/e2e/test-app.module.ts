@@ -46,3 +46,42 @@ export class TestAppCustomDateModule {}
   controllers: [TestController],
 })
 export class TestAppCustomErrorCodeModule {}
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      transformResponse: (data) => {
+        if (data && typeof data === 'object' && 'password' in data) {
+          const { password, ...rest } = data as Record<string, unknown>;
+          return rest;
+        }
+        return data;
+      },
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppTransformModule {}
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      successCodeMapper: (statusCode) => {
+        const map: Record<number, string> = { 200: 'OK', 201: 'CREATED' };
+        return map[statusCode];
+      },
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppSuccessCodeModule {}
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      successCodeMapper: () => 'MAPPER_CODE',
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppSuccessCodePriorityModule {}
