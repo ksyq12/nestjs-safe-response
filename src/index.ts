@@ -15,6 +15,7 @@ export {
   RawResponse,
   Paginated,
   ResponseMessage,
+  SuccessCode,
 } from './decorators';
 
 // Interfaces

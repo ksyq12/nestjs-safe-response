@@ -32,6 +32,9 @@ export class SafeSuccessResponseDto {
   @ApiProperty({ example: 200 })
   statusCode!: number;
 
+  @ApiPropertyOptional({ example: 'OK', description: 'Custom success code' })
+  code?: string;
+
   @ApiPropertyOptional({ type: ResponseMetaDto })
   meta?: ResponseMetaDto;
 

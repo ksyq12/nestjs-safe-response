@@ -5,7 +5,7 @@ import {
   ApiResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY } from '../constants';
+import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY } from '../constants';
 import {
   SafeSuccessResponseDto,
   SafeErrorResponseDto,
@@ -122,3 +122,9 @@ export const Paginated = (options?: PaginatedOptions) =>
  */
 export const ResponseMessage = (message: string) =>
   SetMetadata(RESPONSE_MESSAGE_KEY, message);
+
+/**
+ * Set a custom success code for this route (method-level only).
+ * Takes priority over successCodeMapper module option.
+ */
+export const SuccessCode = (code: string) => SetMetadata(SUCCESS_CODE_KEY, code);
