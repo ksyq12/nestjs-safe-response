@@ -154,6 +154,8 @@ healthCheck() {
 }
 ```
 
+> **참고:** 컨트롤러가 `Buffer`나 `Stream`을 반환하는 경우 `@RawResponse()`를 사용하세요. 그렇지 않으면 바이너리 데이터가 `{ type: 'Buffer', data: [...] }` 형태로 직렬화되어 원본 내용이 손상됩니다.
+
 ### `@ResponseMessage(message)`
 
 `meta.message`에 커스텀 메시지를 추가합니다.

@@ -161,6 +161,8 @@ healthCheck() {
 }
 ```
 
+> **Note:** If your controller returns a `Buffer` or `Stream`, use `@RawResponse()` to skip response wrapping. Without it, binary data will be serialized as `{ type: 'Buffer', data: [...] }`, which corrupts the original content.
+
 ### `@ResponseMessage(message)`
 
 Adds a custom message to `meta.message`.

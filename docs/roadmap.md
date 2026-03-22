@@ -34,9 +34,9 @@
 
 | 항목 | 난이도 | 설명 |
 |------|--------|------|
-| NestJS v10 실제 테스트 | 중 | 현재 v11에서만 테스트됨. CI 매트릭스에 v10 추가 |
-| @nestjs/swagger v7/v8 호환 테스트 | 중 | peerDependencies에 선언했지만 실제 테스트 없음 |
-| 에지 케이스 테스트 보강 | 하 | Streaming 응답, Buffer 반환, undefined 반환 등 |
+| ~~NestJS v10 실제 테스트~~ | 중 | 현재 v11에서만 테스트됨. CI 매트릭스에 v10 추가 ✓ |
+| ~~@nestjs/swagger v7/v8 호환 테스트~~ | 중 | peerDependencies에 선언했지만 실제 테스트 없음 ✓ |
+| ~~에지 케이스 테스트 보강~~ | 하 | Streaming 응답, Buffer 반환, undefined 반환 등 ✓ |
 
 ## v1.0.0 — 정식 릴리스
 
