@@ -6,6 +6,9 @@ import {
   TestAppNoMetaModule,
   TestAppCustomDateModule,
   TestAppCustomErrorCodeModule,
+  TestAppTransformModule,
+  TestAppSuccessCodeModule,
+  TestAppSuccessCodePriorityModule,
 } from './test-app.module';
 
 describe('SafeResponse E2E', () => {
@@ -202,6 +205,86 @@ describe('SafeResponse E2E', () => {
         .expect(404);
 
       expect(errorRes.body.timestamp).toBe('2025-01-01T00:00:00Z');
+    });
+  });
+
+  // ─── transformResponse ───
+
+  describe('transformResponse', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppTransformModule);
+    });
+
+    it('GET /test/transformed → password 필드가 제거된 응답', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/transformed')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual({ id: 1, name: 'Test' });
+      expect(res.body.data.password).toBeUndefined();
+    });
+
+    it('GET /test → password 없는 데이터는 그대로 통과', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.data).toEqual({ id: 1, name: 'Test User' });
+    });
+  });
+
+  // ─── 성공 코드 매핑 ───
+
+  describe('성공 코드 매핑', () => {
+    it('successCodeMapper → 응답에 code 필드 포함', async () => {
+      app = await createApp(TestAppSuccessCodeModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.code).toBe('OK');
+    });
+
+    it('successCodeMapper + POST 201 → CREATED 코드', async () => {
+      app = await createApp(TestAppSuccessCodeModule);
+
+      const res = await request(app.getHttpServer())
+        .post('/test')
+        .expect(201);
+
+      expect(res.body.code).toBe('CREATED');
+    });
+
+    it('@SuccessCode() 데코레이터 → 라우트별 코드', async () => {
+      app = await createApp(TestAppModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test/with-code')
+        .expect(200);
+
+      expect(res.body.code).toBe('FETCH_SUCCESS');
+    });
+
+    it('@SuccessCode() 우선순위: 데코레이터 > 전역 매퍼', async () => {
+      app = await createApp(TestAppSuccessCodePriorityModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test/with-code')
+        .expect(200);
+
+      expect(res.body.code).toBe('FETCH_SUCCESS');
+    });
+
+    it('성공 코드 미설정 → code 필드 없음', async () => {
+      app = await createApp(TestAppModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body).not.toHaveProperty('code');
     });
   });
 });
