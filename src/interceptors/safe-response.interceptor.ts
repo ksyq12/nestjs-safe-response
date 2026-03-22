@@ -61,6 +61,11 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map((data) => {
+        // v0.3.0: 래핑 전 데이터 변환 훅
+        if (this.options.transformResponse) {
+          data = this.options.transformResponse(data);
+        }
+
         const response: SafeSuccessResponse = {
           success: true,
           statusCode,

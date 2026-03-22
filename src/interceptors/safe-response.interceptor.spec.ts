@@ -442,4 +442,100 @@ describe('SafeResponseInterceptor', () => {
       expect(result).not.toHaveProperty('path');
     });
   });
+
+  // ─── transformResponse ───
+
+  describe('transformResponse', () => {
+    it('transformResponse 옵션이 설정되면 래핑 전에 data를 변환', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor({
+        transformResponse: (data) => {
+          const obj = data as Record<string, unknown>;
+          const { password, ...rest } = obj;
+          return rest;
+        },
+      });
+      const ctx = createMockExecutionContext();
+      const data = { id: 1, name: 'Test', password: 'secret' };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result.data).toEqual({ id: 1, name: 'Test' });
+      expect((result.data as any).password).toBeUndefined();
+    });
+
+    it('transformResponse 미설정 시 data가 그대로 전달', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+      const data = { id: 1, password: 'secret' };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result.data).toEqual(data);
+    });
+
+    it('transformResponse가 null을 반환하면 data가 null (페이지네이션 미적용)', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor({
+        transformResponse: () => null,
+      });
+      const ctx = createMockExecutionContext();
+      const data = { data: [], total: 10, page: 1, limit: 10 };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result.data).toBeNull();
+      expect(result.meta?.pagination).toBeUndefined();
+    });
+
+    it('transformResponse + 페이지네이션: 변환 후 결과로 페이지네이션 판단', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor({
+        transformResponse: (data) => ({
+          data: [{ id: 1 }],
+          total: 1,
+          page: 1,
+          limit: 10,
+        }),
+      });
+      const ctx = createMockExecutionContext();
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ raw: 'input' })),
+      );
+
+      expect(result.data).toEqual([{ id: 1 }]);
+      expect(result.meta?.pagination).toBeDefined();
+      expect(result.meta?.pagination?.total).toBe(1);
+    });
+
+    it('transformResponse가 예외를 던지면 그대로 전파', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor({
+        transformResponse: () => {
+          throw new Error('Transform failed');
+        },
+      });
+      const ctx = createMockExecutionContext();
+
+      await expect(
+        lastValueFrom(
+          interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+        ),
+      ).rejects.toThrow('Transform failed');
+    });
+  });
 });
