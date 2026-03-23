@@ -44,7 +44,7 @@ export class TestController {
   }
 
   @Get('paginated')
-  @Paginated({ defaultLimit: 20, maxLimit: 100 })
+  @Paginated({ maxLimit: 100 })
   paginated() {
     return {
       data: [{ id: 1 }, { id: 2 }, { id: 3 }],

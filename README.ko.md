@@ -111,7 +111,7 @@ async findOne(@Param('id') id: string) {
 
 ```typescript
 @Get()
-@Paginated({ defaultLimit: 20, maxLimit: 100 })
+@Paginated({ maxLimit: 100 })
 @ApiPaginatedSafeResponse(UserDto)
 async findAll(@Query('page') page = 1, @Query('limit') limit = 20) {
   const [items, total] = await this.usersService.findAndCount({
@@ -174,7 +174,7 @@ create(@Body() dto: CreateUserDto) {
 
 ### `@Paginated(options?)`
 
-페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `defaultLimit`, `maxLimit`.
+페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `maxLimit`.
 
 ### `@SuccessCode(code: string)`
 

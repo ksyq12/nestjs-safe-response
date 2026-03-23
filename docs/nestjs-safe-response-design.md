@@ -192,7 +192,7 @@ export class AppModule {}
 | `@ApiSafeResponse(Model)` | Swagger `data` 필드를 특정 DTO 타입으로 문서화 | `isArray`, `statusCode` 옵션 |
 | `@ApiPaginatedSafeResponse(Model)` | 페이지네이션 포함 Swagger 스키마 자동 생성 | `description` 옵션 |
 | `@RawResponse()` | 해당 라우트의 응답 래핑 건너뛰기 | 헬스체크, SSE, 파일 다운로드 등 |
-| `@Paginated(options?)` | 페이지네이션 메타데이터 자동 계산 활성화 | `defaultLimit`, `maxLimit` 옵션 |
+| `@Paginated(options?)` | 페이지네이션 메타데이터 자동 계산 활성화 | `maxLimit` 옵션 |
 | `@ResponseMessage(msg)` | 커스텀 메시지를 메타데이터에 설정 | 인터셉터에서 참조 가능 |
 
 ### 4.3 사용 예시
@@ -210,7 +210,7 @@ export class UsersController {
 
   // 페이지네이션
   @Get()
-  @Paginated({ defaultLimit: 20, maxLimit: 100 })
+  @Paginated({ maxLimit: 100 })
   @ApiPaginatedSafeResponse(UserDto)
   async findAll(@Query('page') page = 1, @Query('limit') limit = 20) {
     const [items, total] = await this.usersService.findAndCount({

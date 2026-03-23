@@ -118,7 +118,7 @@ Generates paginated Swagger schema with `meta.pagination`.
 
 ```typescript
 @Get()
-@Paginated({ defaultLimit: 20, maxLimit: 100 })
+@Paginated({ maxLimit: 100 })
 @ApiPaginatedSafeResponse(UserDto)
 async findAll(@Query('page') page = 1, @Query('limit') limit = 20) {
   const [items, total] = await this.usersService.findAndCount({
@@ -181,7 +181,7 @@ Applies standard wrapping + basic Swagger schema. Options: `description`, `statu
 
 ### `@Paginated(options?)`
 
-Enables pagination metadata auto-calculation. Options: `defaultLimit`, `maxLimit`.
+Enables pagination metadata auto-calculation. Options: `maxLimit`.
 
 ### `@SuccessCode(code: string)`
 

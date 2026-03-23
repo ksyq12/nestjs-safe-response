@@ -60,7 +60,6 @@ export interface SafeErrorResponse {
 }
 
 export interface PaginatedOptions {
-  defaultLimit?: number;
   maxLimit?: number;
 }
 
