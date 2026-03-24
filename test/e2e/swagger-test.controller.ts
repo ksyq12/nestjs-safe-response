@@ -1,9 +1,12 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  SafeResponse,
   ApiSafeResponse,
+  ApiPaginatedSafeResponse,
   ApiSafeErrorResponse,
   ApiSafeErrorResponses,
+  Paginated,
 } from '../../src/decorators';
 
 class UserDto {
@@ -84,6 +87,36 @@ export class SwaggerTestController {
   @ApiSafeErrorResponse(418)
   teapot() {
     return {};
+  }
+
+  /** @SafeResponse() — basic wrapping schema */
+  @Get('basic')
+  @SafeResponse()
+  basic() {
+    return { id: 1 };
+  }
+
+  /** @SafeResponse() with custom description */
+  @Get('basic-custom')
+  @SafeResponse({ description: 'Custom description', statusCode: 201 })
+  basicCustom() {
+    return { id: 1 };
+  }
+
+  /** @ApiPaginatedSafeResponse() — paginated schema */
+  @Get('paginated')
+  @Paginated()
+  @ApiPaginatedSafeResponse(UserDto)
+  paginated() {
+    return { data: [{ id: 1, name: 'John' }], total: 1, page: 1, limit: 20 };
+  }
+
+  /** @ApiPaginatedSafeResponse() with custom description */
+  @Get('paginated-custom')
+  @Paginated()
+  @ApiPaginatedSafeResponse(UserDto, { description: 'Paginated users' })
+  paginatedCustom() {
+    return { data: [], total: 0, page: 1, limit: 20 };
   }
 
   /** Coexistence: success + error on same method */

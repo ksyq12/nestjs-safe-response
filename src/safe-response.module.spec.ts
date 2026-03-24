@@ -86,6 +86,22 @@ describe('SafeResponseModule', () => {
       expect(injectedOptions).toEqual({ timestamp: true });
     });
 
+    it('async useFactory (Promise 반환) → 정상 주입', async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          SafeResponseModule.registerAsync({
+            useFactory: async () => {
+              // 비동기 설정 로드 시뮬레이션
+              return { timestamp: false, path: false };
+            },
+          }),
+        ],
+      }).compile();
+
+      const injectedOptions = moduleRef.get(SAFE_RESPONSE_OPTIONS);
+      expect(injectedOptions).toEqual({ timestamp: false, path: false });
+    });
+
     it('imports에 전달된 모듈이 DynamicModule에 포함됨', () => {
       @Module({})
       class SomeModule {}

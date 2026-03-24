@@ -38,6 +38,58 @@ describe('Swagger Schema E2E', () => {
     expect(document.components.schemas.SafeErrorResponseDto).toBeDefined();
   });
 
+  // ─── @SafeResponse() ───
+
+  describe('@SafeResponse() (GET /swagger-test/basic)', () => {
+    it('SafeSuccessResponseDto를 참조하는 200 응답이 생성되어야 한다', () => {
+      const responses = document.paths['/swagger-test/basic'].get.responses;
+      expect(responses['200']).toBeDefined();
+      const schema = responses['200'].content['application/json'].schema;
+      expect(schema.allOf[0].$ref).toContain('SafeSuccessResponseDto');
+    });
+
+    it('SafeSuccessResponseDto와 SafeErrorResponseDto가 모두 등록되어야 한다', () => {
+      expect(document.components.schemas.SafeSuccessResponseDto).toBeDefined();
+      expect(document.components.schemas.SafeErrorResponseDto).toBeDefined();
+    });
+
+    it('커스텀 description이 전파되어야 한다', () => {
+      const responses = document.paths['/swagger-test/basic-custom'].get.responses;
+      // SafeResponse uses ApiResponse with status option
+      // Note: statusCode option currently uses ApiResponse directly
+      const keys = Object.keys(responses);
+      expect(keys.length).toBeGreaterThan(0);
+      const firstResponse = responses[keys[0]];
+      expect(firstResponse.description).toBe('Custom description');
+    });
+  });
+
+  // ─── @ApiPaginatedSafeResponse() ───
+
+  describe('@ApiPaginatedSafeResponse() (GET /swagger-test/paginated)', () => {
+    it('200 응답에 data 배열과 meta.pagination이 포함되어야 한다', () => {
+      const responses = document.paths['/swagger-test/paginated'].get.responses;
+      expect(responses['200']).toBeDefined();
+      const schema = responses['200'].content['application/json'].schema;
+      expect(schema.allOf).toHaveLength(2);
+      expect(schema.allOf[0].$ref).toContain('SafeSuccessResponseDto');
+
+      const props = schema.allOf[1].properties;
+      expect(props.data.type).toBe('array');
+      expect(props.data.items.$ref).toContain('UserDto');
+      expect(props.meta.properties.pagination.$ref).toContain('PaginationMetaDto');
+    });
+
+    it('PaginationMetaDto가 components/schemas에 등록되어야 한다', () => {
+      expect(document.components.schemas.PaginationMetaDto).toBeDefined();
+    });
+
+    it('커스텀 description이 전파되어야 한다', () => {
+      const responses = document.paths['/swagger-test/paginated-custom'].get.responses;
+      expect(responses['200'].description).toBe('Paginated users');
+    });
+  });
+
   // ─── 단일 에러 응답 기본값 ───
 
   describe('단일 에러 응답 (GET /swagger-test/user/:id)', () => {

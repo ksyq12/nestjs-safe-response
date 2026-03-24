@@ -92,4 +92,8 @@ describe('SafeResponse E2E (Fastify)', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe('INTERNAL_SERVER_ERROR');
   });
+
+  // @Exclude() / ClassSerializerInterceptor 공존 테스트는 Express E2E에서 검증.
+  // Fastify 어댑터도 동일한 NestJS DI 순서를 따르므로 동작이 같음.
+  // 별도 Fastify 테스트는 추가하지 않음 (Express 테스트로 충분).
 });

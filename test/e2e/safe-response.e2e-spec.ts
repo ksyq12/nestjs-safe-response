@@ -269,6 +269,18 @@ describe('SafeResponse E2E', () => {
       expect(res.body.code).toBe('FETCH_SUCCESS');
     });
 
+    it('POST /test/with-code → 201 + @SuccessCode(USER_CREATED)', async () => {
+      app = await createApp(TestAppModule);
+
+      const res = await request(app.getHttpServer())
+        .post('/test/with-code')
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.statusCode).toBe(201);
+      expect(res.body.code).toBe('USER_CREATED');
+    });
+
     it('@SuccessCode() 우선순위: 데코레이터 > 전역 매퍼', async () => {
       app = await createApp(TestAppSuccessCodePriorityModule);
 
@@ -352,15 +364,9 @@ describe('SafeResponse E2E', () => {
       expect(res.body.data.password).toBeUndefined();
     });
 
-    it.skip('역순 등록: @Exclude() 필드가 응답에 남아있음 (문서 경고 근거)', async () => {
-      app = await createApp(TestAppExcludeReversedModule);
-
-      const res = await request(app.getHttpServer())
-        .get('/test/user-exclude')
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.password).toBeDefined();
-    });
+    // 알려진 제한사항: ClassSerializerInterceptor가 SafeResponseModule보다 먼저
+    // import되면 @Exclude()가 래핑된 최상위 객체에 적용되어 data 내부 password가 살아남음.
+    // 정상 순서(SafeResponseModule 먼저 import)를 사용하면 문제 없음.
+    // 참고: TestAppExcludeReversedModule에서 재현 가능.
   });
 });
