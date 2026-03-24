@@ -342,6 +342,68 @@ export class AppModule {}
 
 `errorCodeMapper` 옵션으로 커스텀 매핑 가능.
 
+## 테스트 및 신뢰성
+
+이 라이브러리는 프로덕션 신뢰성을 보장하기 위해 다층 검증 체계를 갖추고 있습니다.
+
+### 테스트 스위트
+
+| 카테고리 | 수량 | 검증 범위 |
+|----------|------|-----------|
+| 단위 테스트 | 95 | Interceptor, Exception Filter, Module DI, Decorators |
+| E2E 테스트 (Express) | 31 | 전체 HTTP 요청/응답 사이클 |
+| E2E 테스트 (Fastify) | 7 | 플랫폼 동일 동작 검증 |
+| E2E 테스트 (Swagger) | 32 | OpenAPI 스키마 출력 검증 |
+| 타입 테스트 | 12 | `tsd`로 Public API 타입 시그니처 검증 |
+| 스냅샷 | 2 | Swagger `components/schemas` + `paths` 회귀 감지 |
+
+```bash
+npm test              # 단위 테스트
+npm run test:e2e      # E2E 테스트 (Express + Fastify + Swagger)
+npm run test:cov      # 단위 테스트 + 커버리지 (90%+ 강제)
+npm run test:types    # Public API 타입 검증
+npm run bench         # 성능 벤치마크
+```
+
+### CI 파이프라인
+
+모든 push에서 GitHub Actions 전체 매트릭스 실행:
+
+```
+Node 18/20/22 × NestJS 10/11 × @nestjs/swagger 8/11
+→ build → test:cov (임계값 강제) → test:e2e → test:types
+```
+
+### 커버리지 임계값
+
+CI에서 강제 — 아래 기준 미달 시 빌드 실패:
+
+| 지표 | 임계값 |
+|------|--------|
+| Lines | 90% |
+| Statements | 90% |
+| Branches | 80% |
+| Functions | 60% |
+
+### OpenAPI 스키마 유효성 검증
+
+생성된 Swagger 문서는 E2E 테스트에서 `@apidevtools/swagger-parser`로 OpenAPI 스펙 유효성을 검증합니다. 잘못된 스키마 생성 시 테스트가 실패합니다.
+
+### API 계약 스냅샷
+
+Swagger `components/schemas`와 `paths`가 스냅샷으로 고정됩니다. 의도치 않은 스키마 변경 시 테스트가 깨집니다 — 의도적 변경 시 `npx jest --config test/jest-e2e.json -u`로 스냅샷을 업데이트하세요.
+
+### 성능
+
+벤치마크 결과 (`npm run bench`, 500회 반복):
+
+| 경로 | Raw NestJS | nestjs-safe-response 적용 | 오버헤드 |
+|------|-----------|--------------------------|----------|
+| 성공 (200) | 0.54ms | 0.63ms | **+0.09ms** |
+| 에러 (404) | 0.70ms | 0.55ms | **-0.15ms** |
+
+성공 경로는 ~0.09ms의 오버헤드가 추가됩니다. 에러 경로는 오히려 더 빠른데, `SafeExceptionFilter`가 `httpAdapter.reply()`를 직접 사용하여 NestJS 기본 예외 처리의 이중 JSON 직렬화를 피하기 때문입니다.
+
 ## 호환성
 
 | 의존성 | 버전 |

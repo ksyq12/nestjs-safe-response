@@ -349,6 +349,68 @@ export class AppModule {}
 
 Override with `errorCodeMapper` option.
 
+## Testing & Reliability
+
+This library is built with multiple layers of verification to ensure production reliability.
+
+### Test Suite
+
+| Category | Count | What it covers |
+|----------|-------|----------------|
+| Unit tests | 95 | Interceptor, Exception Filter, Module DI, Decorators |
+| E2E tests (Express) | 31 | Full HTTP request/response cycle |
+| E2E tests (Fastify) | 7 | Platform parity verification |
+| E2E tests (Swagger) | 32 | OpenAPI schema output verification |
+| Type tests | 12 | Public API type signature via `tsd` |
+| Snapshots | 2 | Swagger `components/schemas` + `paths` regression detection |
+
+```bash
+npm test              # unit tests
+npm run test:e2e      # E2E tests (Express + Fastify + Swagger)
+npm run test:cov      # unit tests with coverage (90%+ enforced)
+npm run test:types    # public API type verification
+npm run bench         # performance benchmark
+```
+
+### CI Pipeline
+
+Every push runs the full matrix on GitHub Actions:
+
+```
+Node 18/20/22 × NestJS 10/11 × @nestjs/swagger 8/11
+→ build → test:cov (threshold enforced) → test:e2e → test:types
+```
+
+### Coverage Threshold
+
+Enforced in CI — the build fails if coverage drops below:
+
+| Metric | Threshold |
+|--------|-----------|
+| Lines | 90% |
+| Statements | 90% |
+| Branches | 80% |
+| Functions | 60% |
+
+### OpenAPI Schema Validation
+
+Generated Swagger documents are validated against the OpenAPI spec using `@apidevtools/swagger-parser` in E2E tests. If the library produces an invalid OpenAPI schema, the tests fail.
+
+### API Contract Snapshots
+
+Swagger `components/schemas` and `paths` are snapshot-tested. Any unintended schema change breaks the test — update snapshots with `npx jest --config test/jest-e2e.json -u` when schema changes are intentional.
+
+### Performance
+
+Benchmark results (`npm run bench`, 500 iterations):
+
+| Path | Raw NestJS | With nestjs-safe-response | Overhead |
+|------|-----------|--------------------------|----------|
+| Success (200) | 0.54ms | 0.63ms | **+0.09ms** |
+| Error (404) | 0.70ms | 0.55ms | **-0.15ms** |
+
+The success path adds ~0.09ms of overhead. The error path is actually faster because `SafeExceptionFilter` uses `httpAdapter.reply()` directly, avoiding the double JSON serialization in NestJS's default exception handling.
+
 ## Compatibility
 
 | Dependency | Version |
