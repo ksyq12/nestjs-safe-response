@@ -114,6 +114,13 @@ describe('Swagger Schema E2E', () => {
       });
     });
 
+    it('객체 배열 details → items type: object', () => {
+      const responses = document.paths['/swagger-test/validate-object-array'].post.responses;
+      const errorProps = responses['400'].content['application/json'].schema.allOf[1].properties.error.properties;
+      expect(errorProps.details.type).toBe('array');
+      expect(errorProps.details.items).toEqual({ type: 'object' });
+    });
+
     it('description이 전파되어야 한다', () => {
       const responses = document.paths['/swagger-test/validate'].post.responses;
       expect(responses['400'].description).toBe('Validation failed');
@@ -167,11 +174,11 @@ describe('Swagger Schema E2E', () => {
   // ─── 미등록 status 코드 ───
 
   describe('미등록 status 코드 (GET /swagger-test/teapot)', () => {
-    it('UNKNOWN_ERROR로 폴백되어야 한다', () => {
+    it('INTERNAL_SERVER_ERROR로 폴백되어야 한다', () => {
       const responses = document.paths['/swagger-test/teapot'].get.responses;
       expect(responses['418']).toBeDefined();
       const errorProps = responses['418'].content['application/json'].schema.allOf[1].properties.error.properties;
-      expect(errorProps.code.example).toBe('UNKNOWN_ERROR');
+      expect(errorProps.code.example).toBe('INTERNAL_SERVER_ERROR');
     });
   });
 

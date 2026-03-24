@@ -52,6 +52,15 @@ export class SwaggerTestController {
     return {};
   }
 
+  /** Details with object array type */
+  @Post('validate-object-array')
+  @ApiSafeErrorResponse(400, {
+    details: [{ field: 'email', message: 'must be an email' }],
+  })
+  validateObjectArray() {
+    return {};
+  }
+
   /** Bulk error responses */
   @Post('users')
   @ApiSafeErrorResponses([400, 401, 409])

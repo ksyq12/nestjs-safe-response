@@ -162,8 +162,10 @@ async findOne(@Param('id') id: string) {
 
 옵션: `description`, `code`, `message`, `details`
 
+> **참고:** 이 데코레이터는 빌드타임 Swagger 메타데이터만 생성합니다. 런타임에서 커스텀 `errorCodeMapper`를 사용하는 경우, 데코레이터가 해당 동적 코드를 자동 반영할 수 없습니다 — `code` 옵션을 명시적으로 전달하여 런타임 매핑과 일치시키세요.
+
 `details` 필드 스키마는 예시값에서 자동 추론됩니다:
-- 배열 (모든 배열) → `{ type: 'array', items: { type: 'string' } }`
+- 배열 → `{ type: 'array', items: { type } }` (첫 번째 요소에서 item 타입 추론: object, number, 또는 string)
 - `object` → `{ type: 'object' }`
 - `string` → `{ type: 'string' }`
 
@@ -173,7 +175,7 @@ async findOne(@Param('id') id: string) {
 
 ```typescript
 @Post()
-@ApiSafeResponse(UserDto, { statusCode: 201 })
+@ApiSafeResponse(UserDto)
 @ApiSafeErrorResponses([400, 401, 409])
 async create(@Body() dto: CreateUserDto) {
   return this.usersService.create(dto);

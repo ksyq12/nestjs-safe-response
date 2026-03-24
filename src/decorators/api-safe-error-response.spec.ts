@@ -85,6 +85,42 @@ describe('ApiSafeErrorResponse', () => {
     expect(errorProps.details.example).toEqual({ email: ['must be an email'] });
   });
 
+  it('should infer object array items type from first element', () => {
+    class TestController {
+      @ApiSafeErrorResponse(400, { details: [{ field: 'email', message: 'invalid' }] })
+      validate() {}
+    }
+
+    const meta = getResponseMetadata(TestController.prototype, 'validate');
+    const errorProps = meta[400].schema.allOf[1].properties.error.properties;
+    expect(errorProps.details.type).toBe('array');
+    expect(errorProps.details.items).toEqual({ type: 'object' });
+  });
+
+  it('should infer number array items type from first element', () => {
+    class TestController {
+      @ApiSafeErrorResponse(400, { details: [1001, 1002] })
+      validate() {}
+    }
+
+    const meta = getResponseMetadata(TestController.prototype, 'validate');
+    const errorProps = meta[400].schema.allOf[1].properties.error.properties;
+    expect(errorProps.details.type).toBe('array');
+    expect(errorProps.details.items).toEqual({ type: 'number' });
+  });
+
+  it('should default to string items for empty array', () => {
+    class TestController {
+      @ApiSafeErrorResponse(400, { details: [] })
+      validate() {}
+    }
+
+    const meta = getResponseMetadata(TestController.prototype, 'validate');
+    const errorProps = meta[400].schema.allOf[1].properties.error.properties;
+    expect(errorProps.details.type).toBe('array');
+    expect(errorProps.details.items).toEqual({ type: 'string' });
+  });
+
   it('should include string details with inferred schema', () => {
     class TestController {
       @ApiSafeErrorResponse(400, { details: 'Invalid input' })
@@ -108,7 +144,7 @@ describe('ApiSafeErrorResponse', () => {
     expect(errorProps.details).toBeUndefined();
   });
 
-  it('should fallback to UNKNOWN_ERROR for unmapped status codes', () => {
+  it('should fallback to INTERNAL_SERVER_ERROR for unmapped status codes', () => {
     class TestController {
       @ApiSafeErrorResponse(418)
       teapot() {}
@@ -116,7 +152,7 @@ describe('ApiSafeErrorResponse', () => {
 
     const meta = getResponseMetadata(TestController.prototype, 'teapot');
     expect(meta[418]).toBeDefined();
-    expect(meta[418].schema.allOf[1].properties.error.properties.code.example).toBe('UNKNOWN_ERROR');
+    expect(meta[418].schema.allOf[1].properties.error.properties.code.example).toBe('INTERNAL_SERVER_ERROR');
   });
 
   it('should set custom description', () => {

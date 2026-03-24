@@ -112,7 +112,14 @@ export function ApiPaginatedSafeResponse<T extends Type>(
  */
 function inferDetailsSchema(details: unknown) {
   if (Array.isArray(details)) {
-    return { type: 'array' as const, items: { type: 'string' as const }, example: details };
+    const firstElement = details[0];
+    const itemType =
+      typeof firstElement === 'object' && firstElement !== null
+        ? ('object' as const)
+        : typeof firstElement === 'number'
+          ? ('number' as const)
+          : ('string' as const);
+    return { type: 'array' as const, items: { type: itemType }, example: details };
   }
   if (typeof details === 'object' && details !== null) {
     return { type: 'object' as const, example: details };
@@ -138,7 +145,7 @@ export function ApiSafeErrorResponse(
   options?: ApiSafeErrorResponseOptions,
 ): MethodDecorator {
   const code =
-    options?.code ?? DEFAULT_ERROR_CODE_MAP[status] ?? 'UNKNOWN_ERROR';
+    options?.code ?? DEFAULT_ERROR_CODE_MAP[status] ?? 'INTERNAL_SERVER_ERROR';
   const message = options?.message ?? 'An error occurred';
   const description = options?.description ?? `Error response (${status})`;
 

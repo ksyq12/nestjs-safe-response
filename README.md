@@ -169,8 +169,10 @@ async findOne(@Param('id') id: string) {
 
 Options: `description`, `code`, `message`, `details`
 
+> **Note:** This decorator generates build-time Swagger metadata only. If you use a custom `errorCodeMapper` at runtime, the decorator cannot reflect those dynamic codes automatically — pass the `code` option explicitly to match your runtime mapping.
+
 The `details` field schema is automatically inferred from the example value:
-- Array (any array) → `{ type: 'array', items: { type: 'string' } }`
+- Array → `{ type: 'array', items: { type } }` (item type inferred from first element: object, number, or string)
 - `object` → `{ type: 'object' }`
 - `string` → `{ type: 'string' }`
 
@@ -180,7 +182,7 @@ Documents multiple error responses at once. Accepts an array of status codes or 
 
 ```typescript
 @Post()
-@ApiSafeResponse(UserDto, { statusCode: 201 })
+@ApiSafeResponse(UserDto)
 @ApiSafeErrorResponses([400, 401, 409])
 async create(@Body() dto: CreateUserDto) {
   return this.usersService.create(dto);
