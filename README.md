@@ -16,7 +16,7 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 - **Automatic response wrapping** — all controller returns wrapped in `{ success, statusCode, data }` structure
 - **Error standardization** — exceptions converted to `{ success: false, error: { code, message, details } }`
 - **Pagination metadata** — auto-calculates `totalPages`, `hasNext`, `hasPrev` from controller return
-- **Swagger integration** — `@ApiSafeResponse(Dto)` generates correct OpenAPI schema with wrapped structure
+- **Swagger integration** — `@ApiSafeResponse(Dto)` for success schemas, `@ApiSafeErrorResponse()` / `@ApiSafeErrorResponses()` for error schemas — all with the wrapped envelope
 - **class-validator support** — validation errors parsed into `details` array with "Validation failed" message
 - **Custom error codes** — map exceptions to machine-readable codes via `errorCodeMapper`
 - **Opt-out per route** — `@RawResponse()` skips wrapping for health checks, SSE, file downloads
@@ -170,7 +170,7 @@ async findOne(@Param('id') id: string) {
 Options: `description`, `code`, `message`, `details`
 
 The `details` field schema is automatically inferred from the example value:
-- `string[]` → `{ type: 'array', items: { type: 'string' } }`
+- Array (any array) → `{ type: 'array', items: { type: 'string' } }`
 - `object` → `{ type: 'object' }`
 - `string` → `{ type: 'string' }`
 
