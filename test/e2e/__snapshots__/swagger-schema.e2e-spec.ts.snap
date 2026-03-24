@@ -1,0 +1,1065 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되면 스냅샷이 깨져야 한다 1`] = `
+{
+  "ErrorDetailDto": {
+    "properties": {
+      "code": {
+        "example": "BAD_REQUEST",
+        "type": "string",
+      },
+      "details": {
+        "example": [
+          "email must be an email",
+          "name should not be empty",
+        ],
+        "type": "object",
+      },
+      "message": {
+        "example": "Validation failed",
+        "type": "string",
+      },
+    },
+    "required": [
+      "code",
+      "message",
+    ],
+    "type": "object",
+  },
+  "PaginationMetaDto": {
+    "properties": {
+      "hasNext": {
+        "example": true,
+        "type": "boolean",
+      },
+      "hasPrev": {
+        "example": false,
+        "type": "boolean",
+      },
+      "limit": {
+        "example": 20,
+        "type": "number",
+      },
+      "page": {
+        "example": 1,
+        "type": "number",
+      },
+      "total": {
+        "example": 100,
+        "type": "number",
+      },
+      "totalPages": {
+        "example": 5,
+        "type": "number",
+      },
+    },
+    "required": [
+      "page",
+      "limit",
+      "total",
+      "totalPages",
+      "hasNext",
+      "hasPrev",
+    ],
+    "type": "object",
+  },
+  "ResponseMetaDto": {
+    "properties": {
+      "pagination": {
+        "$ref": "#/components/schemas/PaginationMetaDto",
+      },
+    },
+    "type": "object",
+  },
+  "SafeErrorResponseDto": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorDetailDto",
+      },
+      "path": {
+        "example": "/api/users",
+        "type": "string",
+      },
+      "statusCode": {
+        "example": 400,
+        "type": "number",
+      },
+      "success": {
+        "example": false,
+        "type": "boolean",
+      },
+      "timestamp": {
+        "example": "2025-03-21T12:00:00.000Z",
+        "type": "string",
+      },
+    },
+    "required": [
+      "success",
+      "statusCode",
+      "error",
+    ],
+    "type": "object",
+  },
+  "SafeSuccessResponseDto": {
+    "properties": {
+      "code": {
+        "description": "Custom success code",
+        "example": "OK",
+        "type": "string",
+      },
+      "meta": {
+        "$ref": "#/components/schemas/ResponseMetaDto",
+      },
+      "path": {
+        "example": "/api/users",
+        "type": "string",
+      },
+      "statusCode": {
+        "example": 200,
+        "type": "number",
+      },
+      "success": {
+        "example": true,
+        "type": "boolean",
+      },
+      "timestamp": {
+        "example": "2025-03-21T12:00:00.000Z",
+        "type": "string",
+      },
+    },
+    "required": [
+      "success",
+      "statusCode",
+    ],
+    "type": "object",
+  },
+  "UserDto": {
+    "properties": {
+      "id": {
+        "example": 1,
+        "type": "number",
+      },
+      "name": {
+        "example": "John",
+        "type": "string",
+      },
+    },
+    "required": [
+      "id",
+      "name",
+    ],
+    "type": "object",
+  },
+}
+`;
+
+exports[`Swagger Schema E2E API 계약 스냅샷 전체 paths 구조가 변경되면 스냅샷이 깨져야 한다 1`] = `
+{
+  "/swagger-test/basic": {
+    "get": {
+      "operationId": "SwaggerTestController_basic",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/basic-custom": {
+    "get": {
+      "operationId": "SwaggerTestController_basicCustom",
+      "parameters": [],
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Custom description",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/coexist": {
+    "get": {
+      "operationId": "SwaggerTestController_coexist",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/UserDto",
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "UNAUTHORIZED",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 401,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (401)",
+        },
+        "404": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "NOT_FOUND",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "Resource not found",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 404,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (404)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/create-user": {
+    "post": {
+      "operationId": "SwaggerTestController_createUserTyped",
+      "parameters": [],
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/UserDto",
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "User created",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/custom-code": {
+    "get": {
+      "operationId": "SwaggerTestController_customCode",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "VALIDATION_ERROR",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "Input validation failed",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (400)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/mixed": {
+    "post": {
+      "operationId": "SwaggerTestController_mixed",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "BAD_REQUEST",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (400)",
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "UNAUTHORIZED",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 401,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Token expired",
+        },
+        "404": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "USER_NOT_FOUND",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "User does not exist",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 404,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (404)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/paginated": {
+    "get": {
+      "operationId": "SwaggerTestController_paginated",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "items": {
+                          "$ref": "#/components/schemas/UserDto",
+                        },
+                        "type": "array",
+                      },
+                      "meta": {
+                        "properties": {
+                          "pagination": {
+                            "$ref": "#/components/schemas/PaginationMetaDto",
+                          },
+                        },
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Paginated response",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/paginated-custom": {
+    "get": {
+      "operationId": "SwaggerTestController_paginatedCustom",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "items": {
+                          "$ref": "#/components/schemas/UserDto",
+                        },
+                        "type": "array",
+                      },
+                      "meta": {
+                        "properties": {
+                          "pagination": {
+                            "$ref": "#/components/schemas/PaginationMetaDto",
+                          },
+                        },
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Paginated users",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/teapot": {
+    "get": {
+      "operationId": "SwaggerTestController_teapot",
+      "parameters": [],
+      "responses": {
+        "418": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "INTERNAL_SERVER_ERROR",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 418,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (418)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/user/{id}": {
+    "get": {
+      "operationId": "SwaggerTestController_findUser",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/UserDto",
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "404": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "NOT_FOUND",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 404,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (404)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/users": {
+    "post": {
+      "operationId": "SwaggerTestController_createUser",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "BAD_REQUEST",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (400)",
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "UNAUTHORIZED",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 401,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (401)",
+        },
+        "409": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "CONFLICT",
+                            "type": "string",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 409,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (409)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/validate": {
+    "post": {
+      "operationId": "SwaggerTestController_validate",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "VALIDATION_ERROR",
+                            "type": "string",
+                          },
+                          "details": {
+                            "example": [
+                              "email must be an email",
+                              "name should not be empty",
+                            ],
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
+                          "message": {
+                            "example": "Input validation failed",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Validation failed",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/validate-object": {
+    "post": {
+      "operationId": "SwaggerTestController_validateObject",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "BAD_REQUEST",
+                            "type": "string",
+                          },
+                          "details": {
+                            "example": {
+                              "email": [
+                                "must be an email",
+                              ],
+                              "name": [
+                                "should not be empty",
+                              ],
+                            },
+                            "type": "object",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (400)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/validate-object-array": {
+    "post": {
+      "operationId": "SwaggerTestController_validateObjectArray",
+      "parameters": [],
+      "responses": {
+        "400": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeErrorResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "error": {
+                        "properties": {
+                          "code": {
+                            "example": "BAD_REQUEST",
+                            "type": "string",
+                          },
+                          "details": {
+                            "example": [
+                              {
+                                "field": "email",
+                                "message": "must be an email",
+                              },
+                            ],
+                            "items": {
+                              "type": "object",
+                            },
+                            "type": "array",
+                          },
+                          "message": {
+                            "example": "An error occurred",
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "statusCode": {
+                        "example": 400,
+                        "type": "number",
+                      },
+                      "success": {
+                        "example": false,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Error response (400)",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+}
+`;

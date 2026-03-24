@@ -273,4 +273,27 @@ describe('Swagger Schema E2E', () => {
       expect(schema404.allOf[0].$ref).toContain('SafeErrorResponseDto');
     });
   });
+
+  // ─── OpenAPI 스키마 유효성 검증 ───
+
+  describe('OpenAPI 스키마 유효성', () => {
+    it('생성된 OpenAPI 문서가 유효한 스펙이어야 한다', async () => {
+      const SwaggerParser = (await import('@apidevtools/swagger-parser')).default;
+      // validate()는 유효하지 않으면 에러를 던짐
+      const api: any = await SwaggerParser.validate(structuredClone(document));
+      expect(api.openapi).toBeDefined();
+    });
+  });
+
+  // ─── API 계약 스냅샷 ───
+
+  describe('API 계약 스냅샷', () => {
+    it('components/schemas가 변경되면 스냅샷이 깨져야 한다', () => {
+      expect(document.components.schemas).toMatchSnapshot();
+    });
+
+    it('전체 paths 구조가 변경되면 스냅샷이 깨져야 한다', () => {
+      expect(document.paths).toMatchSnapshot();
+    });
+  });
 });

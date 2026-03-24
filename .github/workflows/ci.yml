@@ -49,5 +49,6 @@ jobs:
             @nestjs/swagger@^${{ matrix.swagger-version }}
 
       - run: npm run build
-      - run: npm test
+      - run: npm run test:cov
       - run: npm run test:e2e
+      - run: npm run test:types
