@@ -44,8 +44,10 @@ export class CursorPaginationMetaDto {
 }
 
 export class ResponseMetaDto {
-  @ApiPropertyOptional({ type: PaginationMetaDto })
-  pagination?: PaginationMetaDto;
+  @ApiPropertyOptional({
+    description: 'Offset (PaginationMetaDto) or cursor (CursorPaginationMetaDto) pagination metadata',
+  })
+  pagination?: PaginationMetaDto | CursorPaginationMetaDto;
 }
 
 export class SafeSuccessResponseDto {

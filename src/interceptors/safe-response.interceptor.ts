@@ -61,6 +61,12 @@ export class SafeResponseInterceptor implements NestInterceptor {
       CursorPaginatedOptions | true
     >(CURSOR_PAGINATED_KEY, context.getHandler());
 
+    if (paginatedOptions && cursorPaginatedOptions) {
+      throw new Error(
+        'nestjs-safe-response: @Paginated() and @CursorPaginated() cannot both be applied to the same route handler.',
+      );
+    }
+
     const customMessage = this.reflector.get<string>(
       RESPONSE_MESSAGE_KEY,
       context.getHandler(),
@@ -199,6 +205,7 @@ export class SafeResponseInterceptor implements NestInterceptor {
       'hasMore' in obj &&
       'limit' in obj &&
       Array.isArray(obj.data) &&
+      (obj.nextCursor === null || typeof obj.nextCursor === 'string') &&
       typeof obj.hasMore === 'boolean' &&
       typeof obj.limit === 'number'
     );

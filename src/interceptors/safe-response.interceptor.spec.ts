@@ -985,6 +985,42 @@ describe('SafeResponseInterceptor', () => {
       expect(result.meta?.pagination).toBeUndefined();
     });
 
+    it('nextCursor가 undefined → isCursorPaginatedResult false (타입 계약 보호)', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === CURSOR_PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+      const badData = {
+        data: [{ id: 1 }],
+        nextCursor: undefined,
+        hasMore: true,
+        limit: 10,
+      };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(badData)),
+      );
+
+      // nextCursor: undefined should NOT match cursor pagination
+      expect(result.meta?.pagination).toBeUndefined();
+    });
+
+    it('@Paginated() + @CursorPaginated() 동시 사용 → Error throw', () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        if (key === CURSOR_PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+
+      expect(() =>
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      ).toThrow('@Paginated() and @CursorPaginated() cannot both be applied');
+    });
+
     it('isCursorPaginatedResult: null → false', async () => {
       jest.spyOn(reflector, 'get').mockImplementation((key) => {
         if (key === CURSOR_PAGINATED_KEY) return true;
