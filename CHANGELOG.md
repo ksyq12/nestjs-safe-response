@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-25
+
+### Added
+- **Request ID tracking** — opt-in `requestId` field in all success and error responses. Reads incoming `X-Request-Id` header (reuses if present), auto-generates UUID v4 via `crypto.randomUUID()` (no external dependencies), propagates to response header. Custom `headerName` and `generator` options available.
+- **Cursor-based pagination** — `@CursorPaginated()` decorator and `CursorPaginatedResult<T>` type for infinite scroll / real-time feed patterns. Supports `nextCursor`, `previousCursor`, `hasMore`, `limit`, and optional `totalCount` fields. `maxLimit` clamping supported.
+- `@ApiCursorPaginatedSafeResponse(Model)` Swagger decorator for documenting cursor-paginated endpoints
+- `CursorPaginationMetaDto` Swagger DTO class
+- `CursorPaginatedOptions`, `CursorPaginatedResult`, `CursorPaginationMeta`, `RequestIdOptions` type exports
+- `CURSOR_PAGINATED_KEY` constant export
+- `type` discriminator on pagination meta — `'offset'` for offset pagination, `'cursor'` for cursor pagination
+
+### Changed
+- Offset pagination responses now include `type: 'offset'` in `meta.pagination` (additive, non-breaking)
+- `SafeSuccessResponseDto` and `SafeErrorResponseDto` now include optional `requestId` field
+- `PaginationMetaDto` now includes optional `type` field
+
 ## [0.6.0] - 2026-03-24
 
 ### Added
@@ -87,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NestJS v10 and v11 support
 - @nestjs/swagger v7, v8, and v11 support
 
+[0.7.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.7.0
 [0.6.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.5.0
 [0.4.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.4.0

@@ -15,7 +15,8 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 
 - **Automatic response wrapping** — all controller returns wrapped in `{ success, statusCode, data }` structure
 - **Error standardization** — exceptions converted to `{ success: false, error: { code, message, details } }`
-- **Pagination metadata** — auto-calculates `totalPages`, `hasNext`, `hasPrev` from controller return
+- **Pagination metadata** — offset (`page`/`limit`/`total`) and cursor (`nextCursor`/`hasMore`) pagination with auto-calculated meta
+- **Request ID tracking** — opt-in `requestId` field in all responses with incoming header reuse, auto-generation, and response header propagation
 - **Swagger integration** — `@ApiSafeResponse(Dto)` for success schemas, `@ApiSafeErrorResponse()` / `@ApiSafeErrorResponses()` for error schemas — all with the wrapped envelope
 - **class-validator support** — validation errors parsed into `details` array with "Validation failed" message
 - **Custom error codes** — map exceptions to machine-readable codes via `errorCodeMapper`
@@ -74,11 +75,14 @@ await app.listen(3000);
 {
   "success": true,
   "statusCode": 200,
+  "requestId": "550e8400-e29b-41d4-a716-446655440000",
   "data": { "id": 1, "name": "John" },
   "timestamp": "2025-03-21T12:00:00.000Z",
   "path": "/api/users/1"
 }
 ```
+
+> `requestId` is only present when `requestId` option is enabled. See [Request ID](#request-id).
 
 ### Error
 
@@ -86,6 +90,7 @@ await app.listen(3000);
 {
   "success": false,
   "statusCode": 400,
+  "requestId": "550e8400-e29b-41d4-a716-446655440000",
   "error": {
     "code": "BAD_REQUEST",
     "message": "Validation failed",
@@ -138,6 +143,7 @@ Response:
   "data": [{ "id": 1 }, { "id": 2 }],
   "meta": {
     "pagination": {
+      "type": "offset",
       "page": 1,
       "limit": 20,
       "total": 100,
@@ -146,6 +152,54 @@ Response:
       "hasPrev": false
     }
   }
+}
+```
+
+### `@ApiCursorPaginatedSafeResponse(Model)`
+
+Generates cursor-paginated Swagger schema with `meta.pagination`.
+
+```typescript
+@Get()
+@CursorPaginated()
+@ApiCursorPaginatedSafeResponse(UserDto)
+async findAll(@Query('cursor') cursor?: string, @Query('limit') limit = 20) {
+  const { items, nextCursor, hasMore, totalCount } =
+    await this.usersService.findWithCursor({ cursor, limit });
+  return { data: items, nextCursor, hasMore, limit, totalCount };
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": [{ "id": 1 }, { "id": 2 }],
+  "meta": {
+    "pagination": {
+      "type": "cursor",
+      "nextCursor": "eyJpZCI6MTAwfQ==",
+      "previousCursor": null,
+      "hasMore": true,
+      "limit": 20,
+      "totalCount": 150
+    }
+  }
+}
+```
+
+The handler must return a `CursorPaginatedResult<T>`:
+
+```typescript
+interface CursorPaginatedResult<T> {
+  data: T[];
+  nextCursor: string | null;
+  previousCursor?: string | null;  // defaults to null
+  hasMore: boolean;
+  limit: number;
+  totalCount?: number;             // optional
 }
 ```
 
@@ -232,7 +286,11 @@ Applies standard wrapping + basic Swagger schema. Options: `description`, `statu
 
 ### `@Paginated(options?)`
 
-Enables pagination metadata auto-calculation. Options: `maxLimit`.
+Enables offset pagination metadata auto-calculation. Options: `maxLimit`.
+
+### `@CursorPaginated(options?)`
+
+Enables cursor-based pagination metadata auto-calculation. Options: `maxLimit`.
 
 ### `@SuccessCode(code: string)`
 
@@ -257,12 +315,40 @@ Response:
 }
 ```
 
+## Request ID
+
+Enable request ID tracking to include a unique identifier in every response — essential for production debugging and distributed tracing.
+
+```typescript
+SafeResponseModule.register({
+  requestId: true, // auto-generate UUID v4, read from X-Request-Id header
+})
+```
+
+Behavior:
+1. Checks incoming `X-Request-Id` header — reuses the value if present
+2. If no header, generates a UUID v4 via `crypto.randomUUID()` (no external dependencies)
+3. Includes `requestId` field in both success and error response bodies
+4. Sets `X-Request-Id` response header for downstream tracking
+
+### Custom Options
+
+```typescript
+SafeResponseModule.register({
+  requestId: {
+    headerName: 'X-Correlation-Id',  // custom header name (default: 'X-Request-Id')
+    generator: () => `req-${Date.now()}`,  // custom ID generator
+  },
+})
+```
+
 ## Module Options
 
 ```typescript
 SafeResponseModule.register({
   timestamp: true,         // include timestamp field (default: true)
   path: true,              // include path field (default: true)
+  requestId: true,         // include request ID tracking (default: false)
   errorCodeMapper: (exception) => {
     if (exception instanceof TokenExpiredError) return 'TOKEN_EXPIRED';
     return undefined;      // fall back to default mapping
@@ -287,6 +373,7 @@ SafeResponseModule.registerAsync({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `requestId` | `boolean \| RequestIdOptions` | `undefined` | Enable request ID tracking in responses |
 | `successCodeMapper` | `(statusCode: number) => string \| undefined` | `undefined` | Maps HTTP status codes to success code strings |
 | `transformResponse` | `(data: unknown) => unknown` | `undefined` | Transform data before response wrapping (sync only) |
 
