@@ -437,7 +437,7 @@ export class AppModule {}
 
 | 카테고리 | 수량 | 검증 범위 |
 |----------|------|-----------|
-| 단위 테스트 | 95 | Interceptor, Exception Filter, Module DI, Decorators |
+| 단위 테스트 | 157 | Interceptor, Exception Filter, Module DI, Decorators (100% 라인 커버리지) |
 | E2E 테스트 (Express) | 31 | 전체 HTTP 요청/응답 사이클 |
 | E2E 테스트 (Fastify) | 7 | 플랫폼 동일 동작 검증 |
 | E2E 테스트 (Swagger) | 32 | OpenAPI 스키마 출력 검증 |

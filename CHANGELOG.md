@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offset pagination responses now include `type: 'offset'` in `meta.pagination` (additive, non-breaking)
 - `SafeSuccessResponseDto` and `SafeErrorResponseDto` now include optional `requestId` field
 - `PaginationMetaDto` now includes optional `type` field
+- `ResponseMetaDto.pagination` now uses OpenAPI `oneOf` referencing both `PaginationMetaDto` and `CursorPaginationMetaDto`
+
+### Fixed
+- **Division by zero**: `limit: 0` in `PaginatedResult` now clamped to 1 (previously produced `totalPages: Infinity`)
+- **Express array headers**: duplicate `X-Request-Id` headers (sent as `string[]`) now correctly use the first value instead of silently regenerating a new ID
+- **`registerAsync` factory undefined**: `useFactory` returning `undefined` now falls back to `{}` instead of causing `TypeError`
+- **Request ID header sanitization**: incoming headers validated (max 128 chars, safe characters only) to prevent header injection
+- **Duplicate header writes**: filter no longer re-sets the `X-Request-Id` response header when the interceptor already set it
+- **Decorator conflict guard**: `@Paginated()` and `@CursorPaginated()` on the same handler now throws a clear error instead of silently producing wrong output
+- **Cursor type guard**: `nextCursor: undefined` no longer passes `isCursorPaginatedResult` (only `string | null` accepted)
 
 ## [0.6.0] - 2026-03-24
 

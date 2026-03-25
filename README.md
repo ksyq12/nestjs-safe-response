@@ -444,7 +444,7 @@ This library is built with multiple layers of verification to ensure production 
 
 | Category | Count | What it covers |
 |----------|-------|----------------|
-| Unit tests | 95 | Interceptor, Exception Filter, Module DI, Decorators |
+| Unit tests | 157 | Interceptor, Exception Filter, Module DI, Decorators (100% line coverage) |
 | E2E tests (Express) | 31 | Full HTTP request/response cycle |
 | E2E tests (Fastify) | 7 | Platform parity verification |
 | E2E tests (Swagger) | 32 | OpenAPI schema output verification |
