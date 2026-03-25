@@ -41,7 +41,8 @@ export class SafeResponseModule {
       providers: [
         {
           provide: SAFE_RESPONSE_OPTIONS,
-          useFactory: options.useFactory,
+          useFactory: async (...args: any[]) =>
+            (await options.useFactory(...args)) ?? {},
           inject: options.inject ?? [],
         },
         {

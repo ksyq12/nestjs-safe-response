@@ -215,11 +215,12 @@ export class SafeResponseInterceptor implements NestInterceptor {
     result: PaginatedResult,
     options: PaginatedOptions,
   ): PaginationMeta {
-    const limit = Math.min(
-      result.limit,
-      options.maxLimit ?? Number.MAX_SAFE_INTEGER,
+    const limit = Math.max(
+      1,
+      Math.min(result.limit, options.maxLimit ?? Number.MAX_SAFE_INTEGER),
     );
-    const totalPages = Math.ceil(result.total / limit);
+    const totalPages =
+      result.total === 0 ? 0 : Math.ceil(result.total / limit);
 
     return {
       type: 'offset',
@@ -234,8 +235,9 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
   /** Validate and sanitize incoming request ID header (max 128 chars, safe characters only) */
   private sanitizeRequestId(value: unknown): string | undefined {
-    if (typeof value !== 'string' || value.length === 0) return undefined;
-    const sanitized = value.slice(0, 128).replace(/[^a-zA-Z0-9\-_.~]/g, '');
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== 'string' || raw.length === 0) return undefined;
+    const sanitized = raw.slice(0, 128).replace(/[^a-zA-Z0-9\-_.~]/g, '');
     return sanitized.length > 0 ? sanitized : undefined;
   }
 
@@ -243,9 +245,9 @@ export class SafeResponseInterceptor implements NestInterceptor {
     result: CursorPaginatedResult,
     options: CursorPaginatedOptions,
   ): CursorPaginationMeta {
-    const limit = Math.min(
-      result.limit,
-      options.maxLimit ?? Number.MAX_SAFE_INTEGER,
+    const limit = Math.max(
+      1,
+      Math.min(result.limit, options.maxLimit ?? Number.MAX_SAFE_INTEGER),
     );
 
     return {

@@ -141,8 +141,9 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
   /** Validate and sanitize incoming request ID header */
   private sanitizeRequestId(value: unknown): string | undefined {
-    if (typeof value !== 'string' || value.length === 0) return undefined;
-    const sanitized = value.slice(0, 128).replace(/[^a-zA-Z0-9\-_.~]/g, '');
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== 'string' || raw.length === 0) return undefined;
+    const sanitized = raw.slice(0, 128).replace(/[^a-zA-Z0-9\-_.~]/g, '');
     return sanitized.length > 0 ? sanitized : undefined;
   }
 }

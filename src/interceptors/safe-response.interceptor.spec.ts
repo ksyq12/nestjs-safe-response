@@ -373,6 +373,16 @@ describe('SafeResponseInterceptor', () => {
         expected: { totalPages: 2, hasNext: true, hasPrev: false },
         desc: '경계값 나머지 1',
       },
+      {
+        input: { data: [], total: 10, page: 1, limit: 0 },
+        expected: { totalPages: 10, hasNext: true, hasPrev: false, limit: 1 },
+        desc: 'limit 0 → 1로 클램핑 (0 나눗셈 방지)',
+      },
+      {
+        input: { data: [], total: 0, page: 1, limit: 0 },
+        expected: { totalPages: 0, hasNext: false, hasPrev: false, limit: 1 },
+        desc: 'limit 0 + total 0 → totalPages 0',
+      },
     ])('$desc: total=$input.total, page=$input.page, limit=$input.limit', async ({ input, expected }) => {
       const interceptor = createInterceptor();
       const ctx = createMockExecutionContext();
@@ -384,6 +394,9 @@ describe('SafeResponseInterceptor', () => {
       expect(result.meta?.pagination?.totalPages).toBe(expected.totalPages);
       expect(result.meta?.pagination?.hasNext).toBe(expected.hasNext);
       expect(result.meta?.pagination?.hasPrev).toBe(expected.hasPrev);
+      if ('limit' in expected) {
+        expect(result.meta?.pagination?.limit).toBe(expected.limit);
+      }
     });
   });
 
@@ -832,6 +845,20 @@ describe('SafeResponseInterceptor', () => {
       );
     });
 
+    it('requestId: true + 배열 헤더값 → 첫 번째 값 사용', async () => {
+      jest.spyOn(reflector, 'get').mockReturnValue(undefined);
+      const interceptor = createInterceptor({ requestId: true });
+      const ctx = createMockExecutionContext({
+        headers: { 'x-request-id': ['first-id', 'second-id'] as any },
+      });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.requestId).toBe('first-id');
+    });
+
     it('requestId: true + Fastify 어댑터 → response.header() 호출', async () => {
       jest.spyOn(reflector, 'get').mockReturnValue(undefined);
       const interceptor = createInterceptor({ requestId: true });
@@ -960,6 +987,27 @@ describe('SafeResponseInterceptor', () => {
       );
 
       expect((result.meta?.pagination as any)?.previousCursor).toBeNull();
+    });
+
+    it('@CursorPaginated() + limit: 0 → 1로 클램핑', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === CURSOR_PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+      const data = {
+        data: [{ id: 1 }],
+        nextCursor: 'abc',
+        hasMore: true,
+        limit: 0,
+      };
+
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(data)),
+      );
+
+      expect(result.meta?.pagination?.limit).toBe(1);
     });
 
     it('@CursorPaginated() + 비-커서 데이터 → 일반 래핑', async () => {

@@ -102,6 +102,19 @@ describe('SafeResponseModule', () => {
       expect(injectedOptions).toEqual({ timestamp: false, path: false });
     });
 
+    it('useFactory가 undefined 반환 → 빈 객체 {}로 폴백', async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          SafeResponseModule.registerAsync({
+            useFactory: () => undefined as any,
+          }),
+        ],
+      }).compile();
+
+      const injectedOptions = moduleRef.get(SAFE_RESPONSE_OPTIONS);
+      expect(injectedOptions).toEqual({});
+    });
+
     it('imports에 전달된 모듈이 DynamicModule에 포함됨', () => {
       @Module({})
       class SomeModule {}
