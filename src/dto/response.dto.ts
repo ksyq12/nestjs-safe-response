@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, ApiPropertyOptional, getSchemaPath } from '@nestjs/swagger';
 
 export class PaginationMetaDto {
   @ApiPropertyOptional({ example: 'offset', enum: ['offset'] })
@@ -43,9 +43,13 @@ export class CursorPaginationMetaDto {
   totalCount?: number;
 }
 
+@ApiExtraModels(PaginationMetaDto, CursorPaginationMetaDto)
 export class ResponseMetaDto {
   @ApiPropertyOptional({
-    description: 'Offset (PaginationMetaDto) or cursor (CursorPaginationMetaDto) pagination metadata',
+    oneOf: [
+      { $ref: getSchemaPath(PaginationMetaDto) },
+      { $ref: getSchemaPath(CursorPaginationMetaDto) },
+    ],
   })
   pagination?: PaginationMetaDto | CursorPaginationMetaDto;
 }
