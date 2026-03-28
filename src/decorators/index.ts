@@ -288,7 +288,7 @@ export const ProblemType = (typeUri: string) =>
  */
 export function ApiSafeProblemResponse(
   status: number,
-  options?: { description?: string; title?: string; detail?: string },
+  options?: { description?: string },
 ): MethodDecorator {
   const description =
     options?.description ?? `Problem Details (${status})`;

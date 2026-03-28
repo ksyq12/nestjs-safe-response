@@ -286,11 +286,47 @@ Applies standard wrapping + basic Swagger schema. Options: `description`, `statu
 
 ### `@Paginated(options?)`
 
-Enables offset pagination metadata auto-calculation. Options: `maxLimit`.
+Enables offset pagination metadata auto-calculation. Options: `maxLimit`, `links`.
+
+```typescript
+@Get()
+@Paginated({ maxLimit: 100, links: true })  // HATEOAS navigation links
+findAll() { ... }
+```
+
+When `links: true`, the response includes navigation links in `meta.pagination.links`:
+
+```json
+{
+  "meta": {
+    "pagination": {
+      "type": "offset",
+      "page": 2, "limit": 20, "total": 100, "totalPages": 5,
+      "links": {
+        "self": "/api/users?page=2&limit=20",
+        "first": "/api/users?page=1&limit=20",
+        "prev": "/api/users?page=1&limit=20",
+        "next": "/api/users?page=3&limit=20",
+        "last": "/api/users?page=5&limit=20"
+      }
+    }
+  }
+}
+```
 
 ### `@CursorPaginated(options?)`
 
-Enables cursor-based pagination metadata auto-calculation. Options: `maxLimit`.
+Enables cursor-based pagination metadata auto-calculation. Options: `maxLimit`, `links`.
+
+### `@ProblemType(typeUri: string)`
+
+Set the RFC 9457 problem type URI for a specific route. Used when `problemDetails` is enabled.
+
+```typescript
+@Get(':id')
+@ProblemType('https://api.example.com/problems/user-not-found')
+findOne(@Param('id') id: string) { ... }
+```
 
 ### `@SuccessCode(code: string)`
 
@@ -342,6 +378,59 @@ SafeResponseModule.register({
 })
 ```
 
+## Response Time
+
+Track handler execution time in every response — useful for performance monitoring and SLA tracking.
+
+```typescript
+SafeResponseModule.register({
+  responseTime: true,  // adds meta.responseTime (milliseconds) to all responses
+})
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": { "..." },
+  "meta": { "responseTime": 42 }
+}
+```
+
+Uses `performance.now()` for high-resolution timing. Included in both success and error responses (when the interceptor ran before the error).
+
+## RFC 9457 Problem Details
+
+Enable [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) standard error responses — used by Stripe, GitHub, and Cloudflare.
+
+```typescript
+SafeResponseModule.register({
+  problemDetails: true,  // or { baseUrl: 'https://api.example.com/problems' }
+})
+```
+
+Error response:
+
+```json
+{
+  "type": "https://api.example.com/problems/not-found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "User with ID 123 not found",
+  "instance": "/api/users/123",
+  "code": "NOT_FOUND",
+  "requestId": "abc-123"
+}
+```
+
+- Sets `Content-Type: application/problem+json` automatically
+- Uses `@ProblemType(uri)` decorator for per-route type URIs, or auto-generates from `baseUrl` + error code
+- Preserves extension members: `code`, `requestId`, `details` (validation errors), `meta.responseTime`
+- Success responses are **not affected** — only error responses change format
+- Use `@ApiSafeProblemResponse(status)` for Swagger documentation
+
 ## Module Options
 
 ```typescript
@@ -349,6 +438,8 @@ SafeResponseModule.register({
   timestamp: true,         // include timestamp field (default: true)
   path: true,              // include path field (default: true)
   requestId: true,         // include request ID tracking (default: false)
+  responseTime: true,      // include response time in meta (default: false)
+  problemDetails: true,    // RFC 9457 error format (default: false)
   errorCodeMapper: (exception) => {
     if (exception instanceof TokenExpiredError) return 'TOKEN_EXPIRED';
     return undefined;      // fall back to default mapping
@@ -374,6 +465,8 @@ SafeResponseModule.registerAsync({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `requestId` | `boolean \| RequestIdOptions` | `undefined` | Enable request ID tracking in responses |
+| `responseTime` | `boolean` | `false` | Include response time (ms) in `meta.responseTime` |
+| `problemDetails` | `boolean \| ProblemDetailsOptions` | `false` | Enable RFC 9457 Problem Details error format |
 | `successCodeMapper` | `(statusCode: number) => string \| undefined` | `undefined` | Maps HTTP status codes to success code strings |
 | `transformResponse` | `(data: unknown) => unknown` | `undefined` | Transform data before response wrapping (sync only) |
 

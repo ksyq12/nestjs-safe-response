@@ -56,6 +56,12 @@ export class SafeExceptionFilter implements ExceptionFilter {
           details = responseObj.message;
         } else if (typeof responseObj.message === 'string') {
           message = responseObj.message;
+        } else if (typeof responseObj.error === 'string') {
+          // NestJS convention: { error: 'Bad Request', statusCode: 400 }
+          message = responseObj.error;
+        } else {
+          // Last resort: use exception.message instead of "Internal server error"
+          message = exception.message;
         }
       }
     }

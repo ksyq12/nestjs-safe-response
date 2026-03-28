@@ -32,7 +32,7 @@
     "test": "jest",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config test/jest-e2e.json",
-    "test:types": "tsd --files index.test-d.ts",
+    "test:types": "npm run build && tsd --files index.test-d.ts",
     "bench": "npx ts-node test/benchmark.ts",
     "prepublishOnly": "npm run build"
   },

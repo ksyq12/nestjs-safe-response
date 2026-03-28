@@ -274,6 +274,32 @@ describe('Swagger Schema E2E', () => {
     });
   });
 
+  // ─── RFC 9457 Problem Details Swagger ───
+
+  describe('RFC 9457 Problem Details Swagger', () => {
+    it('ProblemDetailsDto가 components/schemas에 등록되어야 한다', () => {
+      expect(document.components.schemas.ProblemDetailsDto).toBeDefined();
+    });
+
+    it('@ApiSafeProblemResponse(404) → application/problem+json content type', () => {
+      const responses = document.paths['/swagger-test/problem-details'].get.responses;
+      expect(responses['404']).toBeDefined();
+      expect(responses['404'].content['application/problem+json']).toBeDefined();
+      const schema = responses['404'].content['application/problem+json'].schema;
+      expect(schema.$ref).toContain('ProblemDetailsDto');
+    });
+
+    it('@ApiSafeProblemResponse(400) → 기본 description', () => {
+      const responses = document.paths['/swagger-test/problem-details'].get.responses;
+      expect(responses['400'].description).toBe('Problem Details (400)');
+    });
+
+    it('커스텀 description 반영', () => {
+      const responses = document.paths['/swagger-test/problem-details'].get.responses;
+      expect(responses['404'].description).toBe('User not found (RFC 9457)');
+    });
+  });
+
   // ─── OpenAPI 스키마 유효성 검증 ───
 
   describe('OpenAPI 스키마 유효성', () => {

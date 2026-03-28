@@ -6,6 +6,7 @@ import {
   ApiPaginatedSafeResponse,
   ApiSafeErrorResponse,
   ApiSafeErrorResponses,
+  ApiSafeProblemResponse,
   Paginated,
 } from '../../src/decorators';
 
@@ -132,6 +133,15 @@ export class SwaggerTestController {
   @ApiSafeErrorResponse(404, { code: 'NOT_FOUND', message: 'Resource not found' })
   @ApiSafeErrorResponse(401)
   coexist() {
+    return { id: 1, name: 'John' };
+  }
+
+  /** @ApiSafeProblemResponse — RFC 9457 Problem Details Swagger schema */
+  @Get('problem-details')
+  @ApiSafeResponse(UserDto)
+  @ApiSafeProblemResponse(404, { description: 'User not found (RFC 9457)' })
+  @ApiSafeProblemResponse(400)
+  problemDetails() {
     return { id: 1, name: 'John' };
   }
 }

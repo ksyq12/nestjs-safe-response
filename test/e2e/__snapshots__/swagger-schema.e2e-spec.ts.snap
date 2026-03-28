@@ -162,8 +162,75 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
     ],
     "type": "object",
   },
+  "ProblemDetailsDto": {
+    "properties": {
+      "code": {
+        "description": "Machine-readable error code (extension member)",
+        "example": "NOT_FOUND",
+        "type": "string",
+      },
+      "detail": {
+        "description": "Human-readable explanation",
+        "example": "User with ID 123 not found",
+        "type": "string",
+      },
+      "details": {
+        "description": "Validation details (extension member)",
+        "example": [
+          "email must be an email",
+        ],
+        "type": "object",
+      },
+      "instance": {
+        "description": "URI identifying the specific occurrence",
+        "example": "/api/users/123",
+        "type": "string",
+      },
+      "meta": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ErrorResponseMetaDto",
+          },
+        ],
+        "description": "Response metadata (extension member)",
+      },
+      "requestId": {
+        "description": "Request tracking ID (extension member)",
+        "example": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "string",
+      },
+      "status": {
+        "description": "HTTP status code",
+        "example": 404,
+        "type": "number",
+      },
+      "title": {
+        "description": "Short human-readable summary",
+        "example": "Not Found",
+        "type": "string",
+      },
+      "type": {
+        "description": "URI identifying the problem type (RFC 9457)",
+        "example": "https://api.example.com/problems/not-found",
+        "type": "string",
+      },
+    },
+    "required": [
+      "type",
+      "title",
+      "status",
+      "detail",
+      "instance",
+    ],
+    "type": "object",
+  },
   "ResponseMetaDto": {
     "properties": {
+      "message": {
+        "description": "Custom response message",
+        "example": "Users fetched successfully",
+        "type": "string",
+      },
       "pagination": {
         "oneOf": [
           {
@@ -740,6 +807,62 @@ exports[`Swagger Schema E2E API 계약 스냅샷 전체 paths 구조가 변경�
             },
           },
           "description": "Paginated users",
+        },
+      },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/problem-details": {
+    "get": {
+      "operationId": "SwaggerTestController_problemDetails",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/UserDto",
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "400": {
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetailsDto",
+              },
+            },
+          },
+          "description": "Problem Details (400)",
+        },
+        "404": {
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetailsDto",
+              },
+            },
+          },
+          "description": "User not found (RFC 9457)",
         },
       },
       "tags": [

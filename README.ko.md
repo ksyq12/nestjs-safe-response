@@ -279,11 +279,47 @@ create(@Body() dto: CreateUserDto) {
 
 ### `@Paginated(options?)`
 
-오프셋 페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `maxLimit`.
+오프셋 페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `maxLimit`, `links`.
+
+```typescript
+@Get()
+@Paginated({ maxLimit: 100, links: true })  // HATEOAS 네비게이션 링크
+findAll() { ... }
+```
+
+`links: true` 설정 시 `meta.pagination.links`에 네비게이션 링크가 자동 생성됩니다:
+
+```json
+{
+  "meta": {
+    "pagination": {
+      "type": "offset",
+      "page": 2, "limit": 20, "total": 100, "totalPages": 5,
+      "links": {
+        "self": "/api/users?page=2&limit=20",
+        "first": "/api/users?page=1&limit=20",
+        "prev": "/api/users?page=1&limit=20",
+        "next": "/api/users?page=3&limit=20",
+        "last": "/api/users?page=5&limit=20"
+      }
+    }
+  }
+}
+```
 
 ### `@CursorPaginated(options?)`
 
-커서 기반 페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `maxLimit`.
+커서 기반 페이지네이션 메타데이터 자동 계산을 활성화합니다. 옵션: `maxLimit`, `links`.
+
+### `@ProblemType(typeUri: string)`
+
+RFC 9457 문제 유형 URI를 라우트별로 설정합니다. `problemDetails` 활성화 시 사용됩니다.
+
+```typescript
+@Get(':id')
+@ProblemType('https://api.example.com/problems/user-not-found')
+findOne(@Param('id') id: string) { ... }
+```
 
 ### `@SuccessCode(code: string)`
 
@@ -335,6 +371,59 @@ SafeResponseModule.register({
 })
 ```
 
+## 응답 시간
+
+모든 응답에 핸들러 실행 시간을 추적합니다 — 성능 모니터링과 SLA 추적에 유용합니다.
+
+```typescript
+SafeResponseModule.register({
+  responseTime: true,  // meta.responseTime (밀리초) 포함
+})
+```
+
+응답:
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": { "..." },
+  "meta": { "responseTime": 42 }
+}
+```
+
+`performance.now()`를 사용한 고해상도 타이밍. 성공 및 에러 응답 모두에 포함됩니다.
+
+## RFC 9457 Problem Details
+
+[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) 표준 에러 응답을 활성화합니다 — Stripe, GitHub, Cloudflare가 채택한 표준입니다.
+
+```typescript
+SafeResponseModule.register({
+  problemDetails: true,  // 또는 { baseUrl: 'https://api.example.com/problems' }
+})
+```
+
+에러 응답:
+
+```json
+{
+  "type": "https://api.example.com/problems/not-found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "ID 123 사용자를 찾을 수 없습니다",
+  "instance": "/api/users/123",
+  "code": "NOT_FOUND",
+  "requestId": "abc-123"
+}
+```
+
+- `Content-Type: application/problem+json` 자동 설정
+- `@ProblemType(uri)` 데코레이터로 라우트별 type URI 지정, 또는 `baseUrl` + 에러 코드로 자동 생성
+- 확장 멤버 유지: `code`, `requestId`, `details` (유효성 검사 에러), `meta.responseTime`
+- 성공 응답에는 **영향 없음** — 에러 응답만 포맷 변경
+- Swagger 문서화: `@ApiSafeProblemResponse(status)` 사용
+
 ## 모듈 옵션
 
 ```typescript
@@ -342,6 +431,8 @@ SafeResponseModule.register({
   timestamp: true,         // timestamp 필드 포함 (기본값: true)
   path: true,              // path 필드 포함 (기본값: true)
   requestId: true,         // 요청 ID 추적 활성화 (기본값: false)
+  responseTime: true,      // 응답 시간 메타 포함 (기본값: false)
+  problemDetails: true,    // RFC 9457 에러 포맷 (기본값: false)
   errorCodeMapper: (exception) => {
     if (exception instanceof TokenExpiredError) return 'TOKEN_EXPIRED';
     return undefined;      // 기본 매핑 사용
@@ -367,6 +458,8 @@ SafeResponseModule.registerAsync({
 | 옵션 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `requestId` | `boolean \| RequestIdOptions` | `undefined` | 응답에 요청 ID 추적 활성화 |
+| `responseTime` | `boolean` | `false` | `meta.responseTime` (ms) 포함 |
+| `problemDetails` | `boolean \| ProblemDetailsOptions` | `false` | RFC 9457 Problem Details 에러 포맷 활성화 |
 | `successCodeMapper` | `(statusCode: number) => string \| undefined` | `undefined` | HTTP 상태 코드를 성공 코드 문자열에 매핑 |
 | `transformResponse` | `(data: unknown) => unknown` | `undefined` | 응답 래핑 전 데이터 변환 (동기 함수만 지원) |
 

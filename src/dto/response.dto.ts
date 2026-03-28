@@ -76,6 +76,9 @@ export class ResponseMetaDto {
   })
   pagination?: PaginationMetaDto | CursorPaginationMetaDto;
 
+  @ApiPropertyOptional({ example: 'Users fetched successfully', description: 'Custom response message' })
+  message?: string;
+
   @ApiPropertyOptional({ example: 42, description: 'Response time in milliseconds' })
   responseTime?: number;
 }
@@ -168,4 +171,7 @@ export class ProblemDetailsDto {
 
   @ApiPropertyOptional({ example: ['email must be an email'], description: 'Validation details (extension member)' })
   details?: unknown;
+
+  @ApiPropertyOptional({ type: ErrorResponseMetaDto, description: 'Response metadata (extension member)' })
+  meta?: ErrorResponseMetaDto;
 }

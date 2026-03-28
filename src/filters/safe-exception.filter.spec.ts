@@ -423,7 +423,7 @@ describe('SafeExceptionFilter', () => {
       expect(body.error.message).toBe('Direct string');
     });
 
-    it('response가 object이고 message가 undefined인 경우 → 기본 message 유지', () => {
+    it('response가 object이고 message가 없고 error가 string인 경우 → error 값 사용', () => {
       const { adapterHost, replyFn } = createMockHttpAdapterHost();
       const filter = createFilter(adapterHost);
       const host = createMockArgumentsHost();
@@ -431,10 +431,11 @@ describe('SafeExceptionFilter', () => {
       filter.catch(new HttpException({ error: 'Bad Request' }, 400), host);
 
       const body = replyFn.mock.calls[0][1];
-      expect(body.error.message).toBe('Internal server error');
+      expect(body.error.message).toBe('Bad Request');
+      expect(body.statusCode).toBe(400);
     });
 
-    it('response가 object이고 message가 number인 경우 → 기본 message 유지', () => {
+    it('response가 object이고 message가 number인 경우 → exception.message 폴백', () => {
       const { adapterHost, replyFn } = createMockHttpAdapterHost();
       const filter = createFilter(adapterHost);
       const host = createMockArgumentsHost();
@@ -442,7 +443,8 @@ describe('SafeExceptionFilter', () => {
       filter.catch(new HttpException({ message: 123 }, 400), host);
 
       const body = replyFn.mock.calls[0][1];
-      expect(body.error.message).toBe('Internal server error');
+      expect(body.error.message).toBe('Http Exception');
+      expect(body.statusCode).toBe(400);
     });
 
     it('response가 string도 object도 아닌 경우 → 기본 message 유지', () => {
