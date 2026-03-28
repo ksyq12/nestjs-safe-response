@@ -2,10 +2,13 @@ import { expectType, expectAssignable, expectNotAssignable } from 'tsd';
 import type {
   SafeSuccessResponse,
   SafeErrorResponse,
+  SafeProblemDetailsResponse,
   PaginationMeta,
+  PaginationLinks,
   ResponseMeta,
   PaginatedResult,
   PaginatedOptions,
+  ProblemDetailsOptions,
   SafeResponseModuleOptions,
   SafeResponseModuleAsyncOptions,
   ApiSafeErrorResponseOptions,
@@ -111,3 +114,48 @@ expectAssignable<ApiSafeErrorResponseConfig>({ status: 400, code: 'VALIDATION' }
 
 // object without status is NOT valid
 expectNotAssignable<ApiSafeErrorResponseConfig>({ code: 'MISSING_STATUS' });
+
+// ─── PaginationLinks ───
+
+const links: PaginationLinks = {
+  self: '/api/users?page=1&limit=20',
+  first: '/api/users?page=1&limit=20',
+  prev: null,
+  next: '/api/users?page=2&limit=20',
+  last: '/api/users?page=5&limit=20',
+};
+expectType<string>(links.self);
+expectType<string | null>(links.prev);
+expectType<string | null>(links.next);
+
+// ─── SafeProblemDetailsResponse ───
+
+const problemRes: SafeProblemDetailsResponse = {
+  type: 'about:blank',
+  title: 'Not Found',
+  status: 404,
+  detail: 'User not found',
+  instance: '/api/users/123',
+};
+expectType<string>(problemRes.type);
+expectType<number>(problemRes.status);
+expectType<string | undefined>(problemRes.code);
+expectType<string | undefined>(problemRes.requestId);
+
+// ─── ProblemDetailsOptions ───
+
+const pdOpts: ProblemDetailsOptions = { baseUrl: 'https://api.example.com/problems' };
+expectType<string | undefined>(pdOpts.baseUrl);
+
+// ─── SafeResponseModuleOptions with new fields ───
+
+const v080Options: SafeResponseModuleOptions = {
+  responseTime: true,
+  problemDetails: true,
+};
+expectType<SafeResponseModuleOptions>(v080Options);
+
+const v080OptionsWithPd: SafeResponseModuleOptions = {
+  problemDetails: { baseUrl: 'https://api.example.com/problems' },
+};
+expectType<SafeResponseModuleOptions>(v080OptionsWithPd);

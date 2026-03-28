@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-28
+
+### Added
+- **RFC 9457 Problem Details** — opt-in `problemDetails` option enables standard error responses with `application/problem+json` content type, `type`/`title`/`status`/`detail`/`instance` fields, and extension members (`code`, `requestId`, `details`). Supports `baseUrl` option for problem type URI generation and `@ProblemType()` decorator for per-route type URIs.
+- **HATEOAS pagination links** — `@Paginated({ links: true })` and `@CursorPaginated({ links: true })` auto-generate navigation links (`self`, `first`, `prev`, `next`, `last`) in `meta.pagination.links`. Links use relative paths only (no hostname leak). Existing query parameters are preserved.
+- **Response time metadata** — opt-in `responseTime: true` option adds `meta.responseTime` (milliseconds, integer) to both success and error responses. Uses `performance.now()` for high-resolution timing.
+- `@ProblemType(uri)` decorator for per-route RFC 9457 problem type URI
+- `@ApiSafeProblemResponse(status, options?)` Swagger decorator for documenting Problem Details responses
+- `ProblemDetailsDto` Swagger DTO class
+- `PaginationLinksDto` Swagger DTO class
+- `ErrorResponseMetaDto` Swagger DTO class
+- `PaginationLinks`, `ProblemDetailsOptions`, `SafeProblemDetailsResponse` type exports
+- `DEFAULT_PROBLEM_TITLE_MAP`, `PROBLEM_TYPE_KEY` constant exports
+
+### Changed
+- `PaginatedOptions` and `CursorPaginatedOptions` now accept optional `links` field
+- `PaginationMeta` and `CursorPaginationMeta` now include optional `links` field
+- `ResponseMeta` now includes optional `responseTime` field
+- `SafeErrorResponse` now includes optional `meta` field (for responseTime)
+- `SafeErrorResponseDto` now includes optional `meta` field
+
 ## [0.7.0] - 2026-03-25
 
 ### Added
@@ -113,6 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NestJS v10 and v11 support
 - @nestjs/swagger v7, v8, and v11 support
 
+[0.8.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.8.0
 [0.7.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.7.0
 [0.6.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.5.0

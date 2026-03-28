@@ -16,6 +16,7 @@ import {
   CURSOR_PAGINATED_KEY,
   RESPONSE_MESSAGE_KEY,
   SUCCESS_CODE_KEY,
+  PROBLEM_TYPE_KEY,
 } from '../constants';
 import {
   SafeResponseModuleOptions,
@@ -23,6 +24,7 @@ import {
   PaginatedOptions,
   PaginatedResult,
   PaginationMeta,
+  PaginationLinks,
   CursorPaginatedOptions,
   CursorPaginatedResult,
   CursorPaginationMeta,
@@ -85,6 +87,24 @@ export class SafeResponseInterceptor implements NestInterceptor {
     // Resolve request ID (once per request, shared with filter)
     const requestId = this.resolveRequestId(request, responseObj);
 
+    // Forward @ProblemType() metadata to request for filter to read
+    // (ArgumentsHost in filter lacks getHandler(), so we store it here)
+    const problemType = this.reflector.get<string>(
+      PROBLEM_TYPE_KEY,
+      context.getHandler(),
+    );
+    if (problemType) {
+      request.__safeResponseProblemType = problemType;
+    }
+
+    // Capture start time for response time calculation (shared with filter)
+    const includeResponseTime = this.options.responseTime ?? false;
+    let startTime: number | undefined;
+    if (includeResponseTime) {
+      startTime = performance.now();
+      request.__safeResponseStartTime = startTime;
+    }
+
     return next.handle().pipe(
       map((data) => {
         // v0.3.0: 래핑 전 데이터 변환 훅
@@ -107,20 +127,32 @@ export class SafeResponseInterceptor implements NestInterceptor {
         };
 
         if (paginatedOptions && this.isPaginatedResult(data)) {
-          const pagination = this.calculatePagination(
-            data,
-            paginatedOptions === true ? {} : paginatedOptions,
-          );
+          const opts = paginatedOptions === true ? {} : paginatedOptions;
+          const pagination = this.calculatePagination(data, opts);
+          if (opts.links) {
+            pagination.links = this.buildOffsetLinks(
+              request.url,
+              pagination.page,
+              pagination.limit,
+              pagination.totalPages,
+            );
+          }
           response.data = data.data;
           response.meta = { pagination };
         } else if (
           cursorPaginatedOptions &&
           this.isCursorPaginatedResult(data)
         ) {
-          const pagination = this.calculateCursorPagination(
-            data,
-            cursorPaginatedOptions === true ? {} : cursorPaginatedOptions,
-          );
+          const opts = cursorPaginatedOptions === true ? {} : cursorPaginatedOptions;
+          const pagination = this.calculateCursorPagination(data, opts);
+          if (opts.links) {
+            pagination.links = this.buildCursorLinks(
+              request.url,
+              pagination.nextCursor,
+              pagination.previousCursor,
+              pagination.limit,
+            );
+          }
           response.data = data.data;
           response.meta = { pagination };
         }
@@ -140,6 +172,13 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
         if (includePath) {
           response.path = request.url;
+        }
+
+        if (includeResponseTime && startTime !== undefined) {
+          response.meta = {
+            ...response.meta,
+            responseTime: Math.round(performance.now() - startTime),
+          };
         }
 
         return response;
@@ -259,6 +298,64 @@ export class SafeResponseInterceptor implements NestInterceptor {
       ...(result.totalCount !== undefined && {
         totalCount: result.totalCount,
       }),
+    };
+  }
+
+  private buildOffsetLinks(
+    requestUrl: string,
+    page: number,
+    limit: number,
+    totalPages: number,
+  ): PaginationLinks {
+    const buildUrl = (p: number, l: number): string => {
+      const url = new URL(requestUrl, 'http://localhost');
+      url.searchParams.set('page', String(p));
+      url.searchParams.set('limit', String(l));
+      return url.pathname + url.search;
+    };
+
+    return {
+      self: buildUrl(page, limit),
+      first: buildUrl(1, limit),
+      prev: page > 1 ? buildUrl(page - 1, limit) : null,
+      next: page < totalPages ? buildUrl(page + 1, limit) : null,
+      last: totalPages > 0 ? buildUrl(totalPages, limit) : null,
+    };
+  }
+
+  private buildCursorLinks(
+    requestUrl: string,
+    nextCursor: string | null,
+    previousCursor: string | null,
+    limit: number,
+  ): PaginationLinks {
+    const base = new URL(requestUrl, 'http://localhost');
+
+    const buildUrl = (cursor: string | null): string | null => {
+      if (cursor === null) return null;
+      const url = new URL(base.pathname, 'http://localhost');
+      // Preserve non-pagination query params
+      base.searchParams.forEach((v, k) => {
+        if (k !== 'cursor') url.searchParams.set(k, v);
+      });
+      url.searchParams.set('cursor', cursor);
+      url.searchParams.set('limit', String(limit));
+      return url.pathname + url.search;
+    };
+
+    // "first" = URL without cursor param
+    const firstUrl = new URL(base.pathname, 'http://localhost');
+    base.searchParams.forEach((v, k) => {
+      if (k !== 'cursor') firstUrl.searchParams.set(k, v);
+    });
+    firstUrl.searchParams.set('limit', String(limit));
+
+    return {
+      self: base.pathname + base.search,
+      first: firstUrl.pathname + firstUrl.search,
+      prev: buildUrl(previousCursor),
+      next: buildUrl(nextCursor),
+      last: null, // Cannot determine last page in cursor pagination
     };
   }
 }

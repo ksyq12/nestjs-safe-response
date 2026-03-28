@@ -615,4 +615,310 @@ describe('SafeExceptionFilter', () => {
       expect(replyFn.mock.calls[0][1].requestId).toBeDefined();
     });
   });
+
+  // ─── 응답 시간 ───
+
+  describe('응답 시간 (responseTime)', () => {
+    it('responseTime: true + startTime 저장됨 → 에러에도 meta.responseTime 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { responseTime: true });
+      const mockRequest: Record<string, unknown> = {
+        headers: {},
+        __safeResponseStartTime: performance.now() - 50,
+      };
+      const mockResponse = { setHeader: jest.fn() };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new BadRequestException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.meta).toBeDefined();
+      expect(typeof body.meta.responseTime).toBe('number');
+      expect(body.meta.responseTime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('responseTime: true + startTime 없음(인터셉터 미실행) → meta 생략', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { responseTime: true });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new BadRequestException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.meta).toBeUndefined();
+    });
+
+    it('responseTime: false (기본값) → meta 생략', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
+
+      filter.catch(new BadRequestException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.meta).toBeUndefined();
+    });
+
+    it('responseTime: true + 5xx 에러 → meta 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { responseTime: true });
+      const mockRequest: Record<string, unknown> = {
+        headers: {},
+        __safeResponseStartTime: performance.now() - 100,
+      };
+      const mockResponse = { setHeader: jest.fn() };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new Error('Unexpected'), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(typeof body.meta.responseTime).toBe('number');
+    });
+
+    it('responseTime: true + requestId: true → 둘 다 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { responseTime: true, requestId: true });
+      const mockRequest: Record<string, unknown> = {
+        headers: {},
+        __safeResponseStartTime: performance.now() - 10,
+        __safeResponseRequestId: 'test-req-id',
+      };
+      const mockResponse = { setHeader: jest.fn() };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.requestId).toBe('test-req-id');
+      expect(typeof body.meta.responseTime).toBe('number');
+    });
+  });
+
+  // ─── RFC 9457 Problem Details ───
+
+  describe('RFC 9457 Problem Details', () => {
+    it('problemDetails: true → RFC 9457 형식 응답', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost('/api/users/123');
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException('User not found'), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.type).toBe('about:blank');
+      expect(body.title).toBe('Not Found');
+      expect(body.status).toBe(404);
+      expect(body.detail).toBe('User not found');
+      expect(body.instance).toBe('/api/users/123');
+      expect(body.code).toBe('NOT_FOUND');
+      // Standard fields should NOT be present
+      expect(body).not.toHaveProperty('success');
+      expect(body).not.toHaveProperty('statusCode');
+      expect(body).not.toHaveProperty('error');
+    });
+
+    it('problemDetails: false (기본값) → 기존 형식 유지', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost);
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('NOT_FOUND');
+      expect(body).not.toHaveProperty('type');
+      expect(body).not.toHaveProperty('title');
+    });
+
+    it('problemDetails: { baseUrl } → type에 baseUrl 접두사', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: { baseUrl: 'https://api.example.com/problems' },
+      });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.type).toBe('https://api.example.com/problems/not-found');
+    });
+
+    it('@ProblemType() → request에 저장된 type 사용', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const mockRequest: Record<string, unknown> = {
+        headers: {},
+        __safeResponseProblemType: 'https://api.example.com/problems/user-not-found',
+      };
+      const mockResponse = { setHeader: jest.fn() };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.type).toBe('https://api.example.com/problems/user-not-found');
+    });
+
+    it('Content-Type 헤더 설정 (Express)', () => {
+      const { adapterHost } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const setHeaderFn = jest.fn();
+      const mockRequest: Record<string, unknown> = { headers: {} };
+      const mockResponse = { setHeader: setHeaderFn };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new BadRequestException(), host);
+
+      expect(setHeaderFn).toHaveBeenCalledWith('Content-Type', 'application/problem+json');
+    });
+
+    it('Content-Type 헤더 설정 (Fastify)', () => {
+      const { adapterHost } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const headerFn = jest.fn();
+      const mockRequest: Record<string, unknown> = { headers: {} };
+      const mockResponse = { header: headerFn };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new BadRequestException(), host);
+
+      expect(headerFn).toHaveBeenCalledWith('Content-Type', 'application/problem+json');
+    });
+
+    it('validation 에러 → details 확장 멤버 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const host = createMockArgumentsHost();
+      const exception = new BadRequestException({
+        message: ['email must be an email', 'name should not be empty'],
+        error: 'Bad Request',
+      });
+
+      filter.catch(exception, host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.detail).toBe('Validation failed');
+      expect(body.details).toEqual([
+        'email must be an email',
+        'name should not be empty',
+      ]);
+    });
+
+    it('requestId: true + problemDetails: true → requestId 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: true,
+        requestId: true,
+      });
+      const { host } = createMockArgumentsHostWithRequestId({
+        storedRequestId: 'req-123',
+      });
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.requestId).toBe('req-123');
+    });
+
+    it('500 에러 → title: Internal Server Error', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new Error('Something broke'), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.status).toBe(500);
+      expect(body.title).toBe('Internal Server Error');
+      expect(body.detail).toBe('Internal server error');
+    });
+
+    it('responseTime: true + problemDetails: true → meta 포함', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: true,
+        responseTime: true,
+      });
+      const mockRequest: Record<string, unknown> = {
+        headers: {},
+        __safeResponseStartTime: performance.now() - 25,
+      };
+      const mockResponse = { setHeader: jest.fn() };
+      const host = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
+        }),
+      } as unknown as ArgumentsHost;
+
+      filter.catch(new BadRequestException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(typeof body.meta.responseTime).toBe('number');
+    });
+
+    it('errorCodeMapper + problemDetails → code 확장 멤버에 반영', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: true,
+        errorCodeMapper: () => 'CUSTOM_CODE',
+      });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new BadRequestException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.code).toBe('CUSTOM_CODE');
+    });
+
+    it('매핑 안 되는 상태코드 → title: Error', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new HttpException('Custom', 418), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.status).toBe(418);
+      expect(body.title).toBe('Error');
+    });
+  });
 });

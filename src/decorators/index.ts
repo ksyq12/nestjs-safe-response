@@ -5,12 +5,13 @@ import {
   ApiResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY } from '../constants';
+import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY, PROBLEM_TYPE_KEY } from '../constants';
 import {
   SafeSuccessResponseDto,
   SafeErrorResponseDto,
   PaginationMetaDto,
   CursorPaginationMetaDto,
+  ProblemDetailsDto,
 } from '../dto/response.dto';
 import { PaginatedOptions, CursorPaginatedOptions, ApiSafeErrorResponseOptions, ApiSafeErrorResponseConfig } from '../interfaces';
 import { DEFAULT_ERROR_CODE_MAP } from '../constants';
@@ -274,3 +275,34 @@ export const ResponseMessage = (message: string) =>
  * Takes priority over successCodeMapper module option.
  */
 export const SuccessCode = (code: string) => SetMetadata(SUCCESS_CODE_KEY, code);
+
+/**
+ * Set the RFC 9457 problem type URI for this route.
+ * Used when `problemDetails` is enabled in module options.
+ */
+export const ProblemType = (typeUri: string) =>
+  SetMetadata(PROBLEM_TYPE_KEY, typeUri);
+
+/**
+ * Document an RFC 9457 Problem Details error response in Swagger.
+ */
+export function ApiSafeProblemResponse(
+  status: number,
+  options?: { description?: string; title?: string; detail?: string },
+): MethodDecorator {
+  const description =
+    options?.description ?? `Problem Details (${status})`;
+
+  return applyDecorators(
+    ApiExtraModels(ProblemDetailsDto),
+    ApiResponse({
+      status,
+      description,
+      content: {
+        'application/problem+json': {
+          schema: { $ref: getSchemaPath(ProblemDetailsDto) },
+        },
+      },
+    }),
+  );
+}

@@ -9,10 +9,12 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { randomUUID } from 'node:crypto';
-import { SAFE_RESPONSE_OPTIONS, DEFAULT_ERROR_CODE_MAP } from '../constants';
+import { SAFE_RESPONSE_OPTIONS, DEFAULT_ERROR_CODE_MAP, DEFAULT_PROBLEM_TITLE_MAP } from '../constants';
 import {
   SafeResponseModuleOptions,
   SafeErrorResponse,
+  SafeProblemDetailsResponse,
+  ProblemDetailsOptions,
   RequestIdOptions,
 } from '../interfaces';
 
@@ -82,6 +84,57 @@ export class SafeExceptionFilter implements ExceptionFilter {
       );
     }
 
+    // Response time (only when interceptor captured start time)
+    const includeResponseTime = this.options.responseTime ?? false;
+    let responseTimeMeta: { responseTime: number } | undefined;
+    if (includeResponseTime) {
+      const startTime: number | undefined = request.__safeResponseStartTime;
+      if (startTime !== undefined) {
+        responseTimeMeta = {
+          responseTime: Math.round(performance.now() - startTime),
+        };
+      }
+    }
+
+    // RFC 9457 Problem Details mode
+    const pdOpts = this.options.problemDetails;
+    if (pdOpts) {
+      const config: ProblemDetailsOptions = pdOpts === true ? {} : pdOpts;
+      const problemType: string | undefined = request.__safeResponseProblemType;
+
+      let type: string;
+      if (problemType) {
+        type = problemType;
+      } else if (config.baseUrl) {
+        type = `${config.baseUrl}/${errorCode.toLowerCase().replace(/_/g, '-')}`;
+      } else {
+        type = 'about:blank';
+      }
+
+      const problemBody: SafeProblemDetailsResponse = {
+        type,
+        title: DEFAULT_PROBLEM_TITLE_MAP[statusCode] ?? 'Error',
+        status: statusCode,
+        detail: message,
+        instance: requestUrl,
+        ...(errorCode && { code: errorCode }),
+        ...(requestId && { requestId }),
+        ...(details !== undefined && { details }),
+        ...(responseTimeMeta && { meta: responseTimeMeta }),
+      };
+
+      // Set Content-Type: application/problem+json
+      if (typeof response.setHeader === 'function') {
+        response.setHeader('Content-Type', 'application/problem+json');
+      } else if (typeof response.header === 'function') {
+        response.header('Content-Type', 'application/problem+json');
+      }
+
+      httpAdapter.reply(response, problemBody, statusCode);
+      return;
+    }
+
+    // Standard error response format
     const body: SafeErrorResponse = {
       success: false,
       statusCode,
@@ -92,6 +145,10 @@ export class SafeExceptionFilter implements ExceptionFilter {
         ...(details !== undefined && { details }),
       },
     };
+
+    if (responseTimeMeta) {
+      body.meta = responseTimeMeta;
+    }
 
     const includeTimestamp = this.options.timestamp ?? true;
     const includePath = this.options.path ?? true;

@@ -13,6 +13,10 @@ import {
   TestAppExcludeReversedModule,
   TestAppRequestIdModule,
   TestAppCustomRequestIdModule,
+  TestAppResponseTimeModule,
+  TestAppProblemDetailsModule,
+  TestAppProblemDetailsBaseUrlModule,
+  TestAppProblemDetailsFullModule,
 } from './test-app.module';
 
 describe('SafeResponse E2E', () => {
@@ -463,6 +467,158 @@ describe('SafeResponse E2E', () => {
 
       expect(res.body.meta.pagination.type).toBe('offset');
       expect(res.body.meta.pagination.page).toBe(2);
+    });
+  });
+
+  // ─── HATEOAS 페이지네이션 링크 ───
+
+  describe('HATEOAS 페이지네이션 링크', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppModule);
+    });
+
+    it('GET /test/paginated-links → 오프셋 links 포함', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/paginated-links')
+        .expect(200);
+
+      const links = res.body.meta.pagination.links;
+      expect(links).toBeDefined();
+      expect(links.self).toContain('page=2');
+      expect(links.self).toContain('limit=10');
+      expect(links.first).toContain('page=1');
+      expect(links.prev).toContain('page=1');
+      expect(links.next).toContain('page=3');
+      expect(links.last).toContain('page=5');
+    });
+
+    it('GET /test/cursor-paginated-links → 커서 links 포함', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/cursor-paginated-links')
+        .expect(200);
+
+      const links = res.body.meta.pagination.links;
+      expect(links).toBeDefined();
+      expect(links.next).toContain('cursor=next-token');
+      expect(links.prev).toContain('cursor=prev-token');
+      expect(links.first).not.toContain('cursor=');
+      expect(links.last).toBeNull();
+    });
+
+    it('GET /test/paginated → links 미설정 시 links 없음', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/paginated')
+        .expect(200);
+
+      expect(res.body.meta.pagination.links).toBeUndefined();
+    });
+  });
+
+  // ─── 응답 시간 ───
+
+  describe('응답 시간 (responseTime)', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppResponseTimeModule);
+    });
+
+    it('GET /test → 성공 응답에 meta.responseTime 포함', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(typeof res.body.meta.responseTime).toBe('number');
+      expect(res.body.meta.responseTime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('GET /test/not-found → 에러 응답에도 meta.responseTime 포함', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(typeof res.body.meta.responseTime).toBe('number');
+      expect(res.body.meta.responseTime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('GET /test/paginated → 페이지네이션과 responseTime 공존', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/paginated')
+        .expect(200);
+
+      expect(res.body.meta.pagination).toBeDefined();
+      expect(typeof res.body.meta.responseTime).toBe('number');
+    });
+  });
+
+  // ─── RFC 9457 Problem Details ───
+
+  describe('RFC 9457 Problem Details', () => {
+    it('404 → RFC 9457 형식', async () => {
+      app = await createApp(TestAppProblemDetailsModule);
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.body.type).toBe('about:blank');
+      expect(res.body.title).toBe('Not Found');
+      expect(res.body.status).toBe(404);
+      expect(res.body.detail).toBe('User not found');
+      expect(res.body.instance).toBe('/test/not-found');
+      expect(res.body.code).toBe('NOT_FOUND');
+      expect(res.body).not.toHaveProperty('success');
+      expect(res.body).not.toHaveProperty('statusCode');
+    });
+
+    it('Content-Type 헤더: application/problem+json', async () => {
+      app = await createApp(TestAppProblemDetailsModule);
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.headers['content-type']).toContain('application/problem+json');
+    });
+
+    it('400 validation 에러 → details 포함', async () => {
+      app = await createApp(TestAppProblemDetailsModule);
+      const res = await request(app.getHttpServer())
+        .post('/test/validate')
+        .expect(400);
+
+      expect(res.body.title).toBe('Bad Request');
+      expect(res.body.detail).toBe('Validation failed');
+      expect(res.body.details).toBeInstanceOf(Array);
+    });
+
+    it('baseUrl 설정 → type에 baseUrl 접두사', async () => {
+      app = await createApp(TestAppProblemDetailsBaseUrlModule);
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.body.type).toBe('https://api.example.com/problems/not-found');
+    });
+
+    it('requestId + responseTime + problemDetails → 모두 포함', async () => {
+      app = await createApp(TestAppProblemDetailsFullModule);
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.body.type).toBeDefined();
+      expect(res.body.requestId).toBeDefined();
+      expect(typeof res.body.meta.responseTime).toBe('number');
+    });
+
+    it('성공 응답은 problemDetails 영향 없음', async () => {
+      app = await createApp(TestAppProblemDetailsModule);
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeDefined();
+      expect(res.body).not.toHaveProperty('type');
     });
   });
 });

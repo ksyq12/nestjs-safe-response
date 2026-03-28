@@ -126,6 +126,29 @@ export class TestController {
     };
   }
 
+  @Get('paginated-links')
+  @Paginated({ maxLimit: 100, links: true })
+  paginatedWithLinks() {
+    return {
+      data: [{ id: 1 }, { id: 2 }],
+      total: 50,
+      page: 2,
+      limit: 10,
+    };
+  }
+
+  @Get('cursor-paginated-links')
+  @CursorPaginated({ links: true })
+  cursorPaginatedWithLinks() {
+    return {
+      data: [{ id: 1 }],
+      nextCursor: 'next-token',
+      previousCursor: 'prev-token',
+      hasMore: true,
+      limit: 20,
+    };
+  }
+
   @Get('edge-undefined')
   edgeUndefined() {
     return undefined;

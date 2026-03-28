@@ -1,5 +1,22 @@
 import { ApiExtraModels, ApiProperty, ApiPropertyOptional, getSchemaPath } from '@nestjs/swagger';
 
+export class PaginationLinksDto {
+  @ApiProperty({ example: '/api/users?page=2&limit=20' })
+  self!: string;
+
+  @ApiProperty({ example: '/api/users?page=1&limit=20' })
+  first!: string;
+
+  @ApiProperty({ example: '/api/users?page=1&limit=20', nullable: true })
+  prev!: string | null;
+
+  @ApiProperty({ example: '/api/users?page=3&limit=20', nullable: true })
+  next!: string | null;
+
+  @ApiProperty({ example: '/api/users?page=5&limit=20', nullable: true })
+  last!: string | null;
+}
+
 export class PaginationMetaDto {
   @ApiPropertyOptional({ example: 'offset', enum: ['offset'] })
   type?: 'offset';
@@ -21,6 +38,9 @@ export class PaginationMetaDto {
 
   @ApiProperty({ example: false })
   hasPrev!: boolean;
+
+  @ApiPropertyOptional({ type: PaginationLinksDto })
+  links?: PaginationLinksDto;
 }
 
 export class CursorPaginationMetaDto {
@@ -41,6 +61,9 @@ export class CursorPaginationMetaDto {
 
   @ApiPropertyOptional({ example: 150 })
   totalCount?: number;
+
+  @ApiPropertyOptional({ type: PaginationLinksDto })
+  links?: PaginationLinksDto;
 }
 
 @ApiExtraModels(PaginationMetaDto, CursorPaginationMetaDto)
@@ -52,6 +75,9 @@ export class ResponseMetaDto {
     ],
   })
   pagination?: PaginationMetaDto | CursorPaginationMetaDto;
+
+  @ApiPropertyOptional({ example: 42, description: 'Response time in milliseconds' })
+  responseTime?: number;
 }
 
 export class SafeSuccessResponseDto {
@@ -90,6 +116,11 @@ export class ErrorDetailDto {
   details?: unknown;
 }
 
+export class ErrorResponseMetaDto {
+  @ApiPropertyOptional({ example: 42, description: 'Response time in milliseconds' })
+  responseTime?: number;
+}
+
 export class SafeErrorResponseDto {
   @ApiProperty({ example: false })
   success!: false;
@@ -103,9 +134,38 @@ export class SafeErrorResponseDto {
   @ApiProperty({ type: ErrorDetailDto })
   error!: ErrorDetailDto;
 
+  @ApiPropertyOptional({ type: ErrorResponseMetaDto })
+  meta?: ErrorResponseMetaDto;
+
   @ApiPropertyOptional({ example: '2025-03-21T12:00:00.000Z' })
   timestamp?: string;
 
   @ApiPropertyOptional({ example: '/api/users' })
   path?: string;
+}
+
+export class ProblemDetailsDto {
+  @ApiProperty({ example: 'https://api.example.com/problems/not-found', description: 'URI identifying the problem type (RFC 9457)' })
+  type!: string;
+
+  @ApiProperty({ example: 'Not Found', description: 'Short human-readable summary' })
+  title!: string;
+
+  @ApiProperty({ example: 404, description: 'HTTP status code' })
+  status!: number;
+
+  @ApiProperty({ example: 'User with ID 123 not found', description: 'Human-readable explanation' })
+  detail!: string;
+
+  @ApiProperty({ example: '/api/users/123', description: 'URI identifying the specific occurrence' })
+  instance!: string;
+
+  @ApiPropertyOptional({ example: 'NOT_FOUND', description: 'Machine-readable error code (extension member)' })
+  code?: string;
+
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'Request tracking ID (extension member)' })
+  requestId?: string;
+
+  @ApiPropertyOptional({ example: ['email must be an email'], description: 'Validation details (extension member)' })
+  details?: unknown;
 }

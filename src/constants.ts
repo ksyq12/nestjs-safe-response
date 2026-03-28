@@ -6,6 +6,22 @@ export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE';
 export const SUCCESS_CODE_KEY = 'SUCCESS_CODE';
 export const CURSOR_PAGINATED_KEY = 'CURSOR_PAGINATED';
 
+export const PROBLEM_TYPE_KEY = 'PROBLEM_TYPE';
+
+export const DEFAULT_PROBLEM_TITLE_MAP: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  409: 'Conflict',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+};
+
 export const DEFAULT_ERROR_CODE_MAP: Record<number, string> = {
   400: 'BAD_REQUEST',
   401: 'UNAUTHORIZED',

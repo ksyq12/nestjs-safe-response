@@ -140,3 +140,37 @@ class ClassSerializerModule {}
   controllers: [TestController],
 })
 export class TestAppExcludeReversedModule {}
+
+@Module({
+  imports: [SafeResponseModule.register({ responseTime: true })],
+  controllers: [TestController],
+})
+export class TestAppResponseTimeModule {}
+
+@Module({
+  imports: [SafeResponseModule.register({ problemDetails: true })],
+  controllers: [TestController],
+})
+export class TestAppProblemDetailsModule {}
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      problemDetails: { baseUrl: 'https://api.example.com/problems' },
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppProblemDetailsBaseUrlModule {}
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      problemDetails: true,
+      requestId: true,
+      responseTime: true,
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppProblemDetailsFullModule {}
