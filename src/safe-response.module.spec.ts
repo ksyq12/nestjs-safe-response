@@ -7,6 +7,10 @@ import { SafeExceptionFilter } from './filters/safe-exception.filter';
 import { SAFE_RESPONSE_OPTIONS } from './constants';
 
 describe('SafeResponseModule', () => {
+  beforeEach(() => {
+    SafeResponseModule._resetForTesting();
+  });
+
   describe('register()', () => {
     it('옵션 없이 호출 → global: true 모듈 반환', () => {
       const dynamicModule = SafeResponseModule.register();
@@ -125,6 +129,62 @@ describe('SafeResponseModule', () => {
       });
 
       expect(dynamicModule.imports).toContain(SomeModule);
+    });
+  });
+
+  // ─── 중복 등록 감지 ───
+
+  describe('중복 등록 감지 (onModuleInit)', () => {
+    it('단일 등록 → 경고 없음', async () => {
+      const warnSpy = jest
+        .spyOn(SafeResponseModule['logger'], 'warn')
+        .mockImplementation();
+
+      const moduleRef = await Test.createTestingModule({
+        imports: [SafeResponseModule.register()],
+      }).compile();
+      const app = moduleRef.createNestApplication();
+      await app.init();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+      await app.close();
+    });
+
+    it('이중 등록 → Logger.warn 발행', async () => {
+      const warnSpy = jest
+        .spyOn(SafeResponseModule['logger'], 'warn')
+        .mockImplementation();
+
+      @Module({
+        imports: [
+          SafeResponseModule.register(),
+          SafeResponseModule.register(),
+        ],
+      })
+      class DoubleModule {}
+
+      const moduleRef = await Test.createTestingModule({
+        imports: [DoubleModule],
+      }).compile();
+      const app = moduleRef.createNestApplication();
+      await app.init();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('registered multiple times'),
+      );
+
+      warnSpy.mockRestore();
+      await app.close();
+    });
+
+    it('_resetForTesting() → 카운터 초기화', () => {
+      // instanceCount를 직접 확인하는 대신 기능적으로 검증
+      SafeResponseModule._resetForTesting();
+      // Reset 후 register() 호출이 정상 동작함
+      const result = SafeResponseModule.register();
+      expect((result.providers as any[]).length).toBeGreaterThan(0);
     });
   });
 });

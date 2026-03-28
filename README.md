@@ -499,7 +499,7 @@ SafeResponseModule.register({
 
 ### Using with `class-transformer`
 
-`nestjs-safe-response` works seamlessly with NestJS's `ClassSerializerInterceptor`. Fields decorated with `@Exclude()` are properly removed before response wrapping.
+`nestjs-safe-response` works with NestJS's `ClassSerializerInterceptor` when registered in the correct order. `SafeResponseModule` must be imported **before** `ClassSerializerInterceptor` is registered, so that serialization runs first and response wrapping runs second.
 
 ```typescript
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';

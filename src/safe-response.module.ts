@@ -1,4 +1,4 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Logger, Module, OnModuleInit } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { SAFE_RESPONSE_OPTIONS } from './constants';
 import {
@@ -9,7 +9,21 @@ import { SafeResponseInterceptor } from './interceptors/safe-response.intercepto
 import { SafeExceptionFilter } from './filters/safe-exception.filter';
 
 @Module({})
-export class SafeResponseModule {
+export class SafeResponseModule implements OnModuleInit {
+  private static readonly logger = new Logger(SafeResponseModule.name);
+  private static instanceCount = 0;
+
+  onModuleInit(): void {
+    SafeResponseModule.instanceCount++;
+    if (SafeResponseModule.instanceCount > 1) {
+      SafeResponseModule.logger.warn(
+        'SafeResponseModule is registered multiple times. ' +
+          'This causes duplicate response wrapping and error handling. ' +
+          'Import SafeResponseModule only once in your root module.',
+      );
+    }
+  }
+
   static register(options: SafeResponseModuleOptions = {}): DynamicModule {
     return {
       module: SafeResponseModule,
@@ -55,5 +69,10 @@ export class SafeResponseModule {
         },
       ],
     };
+  }
+
+  /** @internal Reset instance count (for testing only) */
+  static _resetForTesting(): void {
+    SafeResponseModule.instanceCount = 0;
   }
 }

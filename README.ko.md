@@ -492,7 +492,7 @@ SafeResponseModule.register({
 
 ### `class-transformer`와 함께 사용
 
-`nestjs-safe-response`는 NestJS의 `ClassSerializerInterceptor`와 완벽하게 호환됩니다. `@Exclude()`로 표시된 필드는 응답 래핑 전에 올바르게 제거됩니다.
+`nestjs-safe-response`는 NestJS의 `ClassSerializerInterceptor`와 올바른 등록 순서에서 호환됩니다. `SafeResponseModule`을 `ClassSerializerInterceptor`보다 **먼저** import해야 직렬화가 먼저 실행되고 응답 래핑이 나중에 실행됩니다.
 
 ```typescript
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
