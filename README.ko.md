@@ -530,11 +530,11 @@ export class AppModule {}
 
 | 카테고리 | 수량 | 검증 범위 |
 |----------|------|-----------|
-| 단위 테스트 | 157 | Interceptor, Exception Filter, Module DI, Decorators (100% 라인 커버리지) |
-| E2E 테스트 (Express) | 31 | 전체 HTTP 요청/응답 사이클 |
-| E2E 테스트 (Fastify) | 7 | 플랫폼 동일 동작 검증 |
-| E2E 테스트 (Swagger) | 32 | OpenAPI 스키마 출력 검증 |
-| 타입 테스트 | 12 | `tsd`로 Public API 타입 시그니처 검증 |
+| 단위 테스트 | 204 | Interceptor, Exception Filter, Module DI, Decorators, Idempotency Guards |
+| E2E 테스트 (Express) | 45 | v0.8.0 기능 포함 전체 HTTP 요청/응답 사이클 |
+| E2E 테스트 (Fastify) | 14 | v0.8.0 기능 포함 플랫폼 동일 동작 검증 |
+| E2E 테스트 (Swagger) | 37 | Problem Details 포함 OpenAPI 스키마 출력 검증 |
+| 타입 테스트 | 42 | `tsd`로 Public API 타입 시그니처 검증 |
 | 스냅샷 | 2 | Swagger `components/schemas` + `paths` 회귀 감지 |
 
 ```bash

@@ -537,11 +537,11 @@ This library is built with multiple layers of verification to ensure production 
 
 | Category | Count | What it covers |
 |----------|-------|----------------|
-| Unit tests | 157 | Interceptor, Exception Filter, Module DI, Decorators (100% line coverage) |
-| E2E tests (Express) | 31 | Full HTTP request/response cycle |
-| E2E tests (Fastify) | 7 | Platform parity verification |
-| E2E tests (Swagger) | 32 | OpenAPI schema output verification |
-| Type tests | 12 | Public API type signature via `tsd` |
+| Unit tests | 204 | Interceptor, Exception Filter, Module DI, Decorators, Idempotency Guards |
+| E2E tests (Express) | 45 | Full HTTP request/response cycle including all v0.8.0 features |
+| E2E tests (Fastify) | 14 | Platform parity verification with v0.8.0 features |
+| E2E tests (Swagger) | 37 | OpenAPI schema output verification including Problem Details |
+| Type tests | 42 | Public API type signature via `tsd` |
 | Snapshots | 2 | Swagger `components/schemas` + `paths` regression detection |
 
 ```bash
