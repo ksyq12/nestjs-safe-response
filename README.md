@@ -15,9 +15,16 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 
 - **Automatic response wrapping** — all controller returns wrapped in `{ success, statusCode, data }` structure
 - **Error standardization** — exceptions converted to `{ success: false, error: { code, message, details } }`
-- **Pagination metadata** — offset (`page`/`limit`/`total`) and cursor (`nextCursor`/`hasMore`) pagination with auto-calculated meta
+- **Pagination metadata** — offset (`page`/`limit`/`total`) and cursor (`nextCursor`/`hasMore`) pagination with auto-calculated meta and HATEOAS links
+- **Sort/Filter metadata** — `@SortMeta()` and `@FilterMeta()` decorators to include sorting and filtering info in response `meta`
 - **Request ID tracking** — opt-in `requestId` field in all responses with incoming header reuse, auto-generation, and response header propagation
+- **Response time** — opt-in `meta.responseTime` (ms) for performance monitoring
+- **RFC 9457 Problem Details** — opt-in standard error format with `application/problem+json`
 - **Swagger integration** — `@ApiSafeResponse(Dto)` for success schemas, `@ApiSafeErrorResponse()` / `@ApiSafeErrorResponses()` for error schemas — all with the wrapped envelope
+- **Global error Swagger** — `applyGlobalErrors()` injects common error responses (401, 403, 500) into all OpenAPI operations
+- **Frontend client types** — `nestjs-safe-response/client` provides zero-dependency TypeScript types and type guards for frontend consumers
+- **nestjs-i18n integration** — automatic error/success message translation via adapter pattern
+- **nestjs-cls integration** — inject CLS store values (traceId, correlationId) into response `meta`
 - **class-validator support** — validation errors parsed into `details` array with "Validation failed" message
 - **Custom error codes** — map exceptions to machine-readable codes via `errorCodeMapper`
 - **Opt-out per route** — `@RawResponse()` skips wrapping for health checks, SSE, file downloads
@@ -540,11 +547,11 @@ This library is built with multiple layers of verification to ensure production 
 
 | Category | Count | What it covers |
 |----------|-------|----------------|
-| Unit tests | 204 | Interceptor, Exception Filter, Module DI, Decorators, Idempotency Guards |
-| E2E tests (Express) | 45 | Full HTTP request/response cycle including all v0.8.0 features |
-| E2E tests (Fastify) | 14 | Platform parity verification with v0.8.0 features |
-| E2E tests (Swagger) | 37 | OpenAPI schema output verification including Problem Details |
-| Type tests | 42 | Public API type signature via `tsd` |
+| Unit tests | 278 | Interceptor, Exception Filter, Module DI, Decorators, Client Type Guards, i18n Adapter, Global Errors |
+| E2E tests (Express) | 45 | Full HTTP request/response cycle including all v0.9.0 features |
+| E2E tests (Fastify) | 14 | Platform parity verification with v0.9.0 features |
+| E2E tests (Swagger) | 41 | OpenAPI schema output verification including Problem Details and Global Errors |
+| Type tests | 72 | Public API type signature via `tsd` including client types and v0.9.0 options |
 | Snapshots | 2 | Swagger `components/schemas` + `paths` regression detection |
 
 ```bash
