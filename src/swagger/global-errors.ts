@@ -180,6 +180,14 @@ function ensureErrorSchema(document: Record<string, unknown>, useProblemDetails:
           instance: { type: 'string', example: '/api/users/123' },
           code: { type: 'string', example: 'NOT_FOUND' },
           requestId: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' },
+          details: { example: ['email must be an email'] },
+          meta: {
+            type: 'object',
+            properties: {
+              responseTime: { type: 'number', example: 42 },
+            },
+            additionalProperties: true,
+          },
         },
       };
     }

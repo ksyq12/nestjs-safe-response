@@ -1024,6 +1024,37 @@ describe('SafeExceptionFilter', () => {
       const body = replyFn.mock.calls[0][1];
       expect(body.error.message).toBe('[translated] errors.VALIDATION');
     });
+
+    it('커스텀 어댑터가 예외를 던지면 원본 메시지로 폴백', () => {
+      const throwingAdapter = {
+        translate: () => { throw new Error('adapter crash'); },
+        resolveLanguage: () => 'en',
+      };
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { i18n: throwingAdapter });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.error.message).toBe('Not Found');
+    });
+
+    it('커스텀 어댑터의 resolveLanguage가 예외를 던져도 폴백', () => {
+      const throwingAdapter = {
+        translate: (key: string) => `[ok] ${key}`,
+        resolveLanguage: () => { throw new Error('lang crash'); },
+      };
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { i18n: throwingAdapter });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      // translate() 자체가 호출되기 전에 resolveLanguage()가 터지므로 원본 메시지로 폴백
+      expect(body.error.message).toBe('Not Found');
+    });
   });
 
   // ─── CLS Context ───

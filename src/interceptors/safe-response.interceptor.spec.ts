@@ -1942,5 +1942,24 @@ describe('SafeResponseInterceptor', () => {
 
       expect(result.meta?.message).toBeUndefined();
     });
+
+    it('커스텀 어댑터가 예외를 던지면 원본 메시지로 폴백', async () => {
+      const throwingAdapter = {
+        translate: () => { throw new Error('adapter crash'); },
+        resolveLanguage: () => 'en',
+      };
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === RESPONSE_MESSAGE_KEY) return 'hello.key';
+        return undefined;
+      });
+      const interceptor = createInterceptor({ i18n: throwingAdapter });
+
+      const ctx = createMockExecutionContext();
+      const result = await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(result.meta?.message).toBe('hello.key');
+    });
   });
 });

@@ -55,7 +55,13 @@ export class SafeExceptionFilter implements ExceptionFilter {
   private translateMessage(message: string, request: SafeHttpRequest): string {
     const adapter = this.getI18nAdapter();
     if (!adapter) return message;
-    return adapter.translate(message, { lang: adapter.resolveLanguage(request) });
+    try {
+      return adapter.translate(message, { lang: adapter.resolveLanguage(request) });
+    } catch {
+      // Custom I18nAdapter threw — fall back to the original message
+      // rather than letting a translation error break the error response pipeline.
+      return message;
+    }
   }
 
   catch(exception: unknown, host: ArgumentsHost): void {

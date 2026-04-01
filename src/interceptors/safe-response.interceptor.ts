@@ -206,11 +206,18 @@ export class SafeResponseInterceptor implements NestInterceptor {
         }
 
         if (customMessage) {
-          // Translate message if i18n is enabled
-          const i18nAdapter = this.getI18nAdapter();
-          const message = i18nAdapter
-            ? i18nAdapter.translate(customMessage, { lang: i18nAdapter.resolveLanguage(request) })
-            : customMessage;
+          // Translate message if i18n is enabled.
+          // try/catch protects against custom I18nAdapter exceptions —
+          // a translation failure must not break the success response pipeline.
+          let message = customMessage;
+          try {
+            const i18nAdapter = this.getI18nAdapter();
+            if (i18nAdapter) {
+              message = i18nAdapter.translate(customMessage, { lang: i18nAdapter.resolveLanguage(request) });
+            }
+          } catch {
+            // Fall back to the original untranslated message
+          }
           response.meta = { ...response.meta, message };
         }
 
