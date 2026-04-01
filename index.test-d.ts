@@ -18,6 +18,8 @@ import type {
   ApiSafeErrorResponseOptions,
   ApiSafeErrorResponseConfig,
 } from './dist';
+import { applyGlobalErrors } from './dist';
+import type { OpenAPIObject } from '@nestjs/swagger';
 
 // ─── SafeSuccessResponse<T> ───
 
@@ -352,3 +354,15 @@ if (hasFilters(metaWithFilters)) {
 expectType<boolean>(hasResponseTime(undefined));
 expectType<boolean>(hasSort(undefined));
 expectType<boolean>(hasFilters(undefined));
+
+// ─── applyGlobalErrors type preservation ─────────────────────────
+
+// applyGlobalErrors should accept OpenAPIObject and return the same type
+declare const openApiDoc: OpenAPIObject;
+const globalErrorOpts: SafeResponseModuleOptions = { swagger: { globalErrors: [500] } };
+const resultDoc = applyGlobalErrors(openApiDoc, globalErrorOpts);
+expectType<OpenAPIObject>(resultDoc);
+
+// Chaining: result should be assignable back to OpenAPIObject
+const chainedDoc: OpenAPIObject = applyGlobalErrors(openApiDoc, globalErrorOpts);
+expectType<OpenAPIObject>(chainedDoc);

@@ -1,4 +1,4 @@
-import { applyGlobalErrors, OpenAPIDocumentLike } from './global-errors';
+import { applyGlobalErrors } from './global-errors';
 import { SafeResponseModuleOptions } from '../interfaces';
 
 // Test helpers use Record<string, any> for deep-access assertions on OpenAPI

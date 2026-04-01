@@ -2,24 +2,20 @@ import { DEFAULT_ERROR_CODE_MAP } from '../constants';
 import { SafeResponseModuleOptions, ApiSafeErrorResponseConfig } from '../interfaces';
 
 // @nestjs/swagger exports OpenAPIObject but not its nested types (PathItemObject,
-// OperationObject, ResponseObject, etc.). We define a structural interface that
-// accepts both the strict OpenAPIObject and looser test mocks, while providing
-// type guidance for the fields we actually read/write.
-
-/** Minimal structural type for an OpenAPI document — compatible with @nestjs/swagger's OpenAPIObject. */
-export interface OpenAPIDocumentLike {
-  paths?: Record<string, Record<string, unknown>>;
-  components?: {
-    schemas?: Record<string, unknown>;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
+// OperationObject, ResponseObject, etc.). We use a generic signature so the caller's
+// concrete type (e.g., OpenAPIObject) flows through unchanged, and cast internally
+// to minimal structural interfaces for the specific fields we read/write.
 
 /** Subset of OpenAPI OperationObject — only the fields we inspect or mutate. */
 interface OperationLike {
   responses?: Record<string, unknown>;
   'x-skip-global-errors'?: boolean;
+}
+
+/** Structural type for the components.schemas we read/write. */
+interface ComponentsLike {
+  schemas?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /** OpenAPI ResponseObject shape we construct — schema + description. */
@@ -38,23 +34,28 @@ interface ResponseShape {
  * SwaggerModule.setup('api', app, document);
  * ```
  *
+ * The generic preserves the caller's document type — if you pass `OpenAPIObject`,
+ * you get `OpenAPIObject` back, so chaining with `SwaggerModule.setup()` works
+ * without manual casts.
+ *
  * Routes decorated with `@SkipGlobalErrors()` are excluded.
  * Route-level error responses take priority over global ones (no overwriting).
  */
-export function applyGlobalErrors(
-  document: OpenAPIDocumentLike,
+export function applyGlobalErrors<T extends object>(
+  document: T,
   options: SafeResponseModuleOptions,
-): OpenAPIDocumentLike {
+): T {
   const globalErrors = options.swagger?.globalErrors;
   if (!globalErrors?.length) return document;
 
-  const paths = document.paths;
+  const doc = document as Record<string, unknown>;
+  const paths = doc.paths as Record<string, Record<string, unknown>> | undefined;
   if (!paths) return document;
 
   const useProblemDetails = !!options.problemDetails;
 
   // Ensure error schema exists in components
-  ensureErrorSchema(document, useProblemDetails);
+  ensureErrorSchema(doc, useProblemDetails);
 
   for (const pathItem of Object.values(paths)) {
     if (!pathItem || typeof pathItem !== 'object') continue;
@@ -157,14 +158,19 @@ function buildErrorResponse(
   };
 }
 
-function ensureErrorSchema(document: OpenAPIDocumentLike, useProblemDetails: boolean): void {
-  if (!document.components) document.components = {};
-  if (!document.components.schemas) document.components.schemas = {};
+function ensureErrorSchema(document: Record<string, unknown>, useProblemDetails: boolean): void {
+  let components = document.components as ComponentsLike | undefined;
+  if (!components) {
+    components = {};
+    document.components = components;
+  }
+  if (!components.schemas) {
+    components.schemas = {};
+  }
 
   if (useProblemDetails) {
-    // Ensure ProblemDetailsDto schema exists
-    if (!document.components.schemas.ProblemDetailsDto) {
-      document.components.schemas.ProblemDetailsDto = {
+    if (!components.schemas.ProblemDetailsDto) {
+      components.schemas.ProblemDetailsDto = {
         type: 'object',
         properties: {
           type: { type: 'string', example: 'https://api.example.com/problems/not-found' },
@@ -178,9 +184,8 @@ function ensureErrorSchema(document: OpenAPIDocumentLike, useProblemDetails: boo
       };
     }
   } else {
-    // Ensure SafeErrorResponseDto schema exists
-    if (!document.components.schemas.SafeErrorResponseDto) {
-      document.components.schemas.SafeErrorResponseDto = {
+    if (!components.schemas.SafeErrorResponseDto) {
+      components.schemas.SafeErrorResponseDto = {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: false },
