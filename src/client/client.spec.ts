@@ -8,6 +8,8 @@ import {
   hasResponseTime,
   hasSort,
   hasFilters,
+  isDeprecated,
+  hasRateLimit,
   SafeSuccessResponse,
   SafeErrorResponse,
   SafeProblemDetailsResponse,
@@ -15,6 +17,8 @@ import {
   PaginationMeta,
   CursorPaginationMeta,
   ResponseMeta,
+  DeprecationMeta,
+  RateLimitMeta,
 } from './index';
 
 describe('Client Type Guards', () => {
@@ -416,6 +420,89 @@ describe('Client Type Guards', () => {
     it('should return true for empty object filters', () => {
       const meta: ResponseMeta = { filters: {} };
       expect(hasFilters(meta)).toBe(true);
+    });
+  });
+
+  // ─── isDeprecated ─────────────────────────────────────────────────
+
+  describe('isDeprecated', () => {
+    it('undefined meta → false', () => {
+      expect(isDeprecated(undefined)).toBe(false);
+    });
+
+    it('deprecation.deprecated === true → true', () => {
+      const meta: ResponseMeta = {
+        deprecation: { deprecated: true },
+      };
+      expect(isDeprecated(meta)).toBe(true);
+    });
+
+    it('deprecation 없음 → false', () => {
+      const meta: ResponseMeta = { message: 'hello' };
+      expect(isDeprecated(meta)).toBe(false);
+    });
+
+    it('deprecation.deprecated !== true → false', () => {
+      const meta = { deprecation: { deprecated: false } } as unknown as ResponseMeta;
+      expect(isDeprecated(meta)).toBe(false);
+    });
+
+    it('type narrowing: deprecated === true이면 since, sunset 접근 가능', () => {
+      const meta: ResponseMeta = {
+        deprecation: {
+          deprecated: true,
+          since: '2025-01-01T00:00:00.000Z',
+          sunset: '2026-12-31T00:00:00.000Z',
+        },
+      };
+      if (isDeprecated(meta)) {
+        expect(meta.deprecation.since).toBe('2025-01-01T00:00:00.000Z');
+        expect(meta.deprecation.sunset).toBe('2026-12-31T00:00:00.000Z');
+      }
+    });
+  });
+
+  // ─── hasRateLimit ─────────────────────────────────────────────────
+
+  describe('hasRateLimit', () => {
+    it('undefined meta → false', () => {
+      expect(hasRateLimit(undefined)).toBe(false);
+    });
+
+    it('유효한 rateLimit (limit, remaining, reset 모두 숫자) → true', () => {
+      const meta: ResponseMeta = {
+        rateLimit: { limit: 100, remaining: 95, reset: 1700000000 },
+      };
+      expect(hasRateLimit(meta)).toBe(true);
+    });
+
+    it('rateLimit 없음 → false', () => {
+      const meta: ResponseMeta = { message: 'hello' };
+      expect(hasRateLimit(meta)).toBe(false);
+    });
+
+    it('부분 필드 (remaining 누락) → false', () => {
+      const meta = {
+        rateLimit: { limit: 100, reset: 1700000000 },
+      } as unknown as ResponseMeta;
+      expect(hasRateLimit(meta)).toBe(false);
+    });
+
+    it('문자열 값 → false', () => {
+      const meta = {
+        rateLimit: { limit: '100', remaining: '95', reset: '1700000000' },
+      } as unknown as ResponseMeta;
+      expect(hasRateLimit(meta)).toBe(false);
+    });
+
+    it('retryAfter 포함 → true (접근 가능)', () => {
+      const meta: ResponseMeta = {
+        rateLimit: { limit: 100, remaining: 0, reset: 1700000000, retryAfter: 30 },
+      };
+      expect(hasRateLimit(meta)).toBe(true);
+      if (hasRateLimit(meta)) {
+        expect(meta.rateLimit.retryAfter).toBe(30);
+      }
     });
   });
 });

@@ -20,6 +20,7 @@ import {
   TestAppProblemDetailsModule,
   TestAppProblemDetailsBaseUrlModule,
   TestAppProblemDetailsFullModule,
+  TestAppRateLimitModule,
 } from './test-app.module';
 
 describe('SafeResponse E2E (Fastify)', () => {
@@ -631,6 +632,81 @@ describe('SafeResponse E2E (Fastify)', () => {
       expect(res.body.type).toBe('https://api.example.com/problems/user-not-found');
       expect(res.body.title).toBe('Not Found');
       expect(res.body.detail).toBe('User not found');
+    });
+  });
+
+  // ─── Deprecation ───
+
+  describe('Deprecation', () => {
+    beforeEach(async () => {
+      app = await createFastifyApp(TestAppModule);
+    });
+
+    it('GET /test/deprecated → meta.deprecation.deprecated === true + Deprecation 헤더', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/deprecated')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.meta.deprecation.deprecated).toBe(true);
+      expect(res.headers['deprecation']).toBe('true');
+    });
+
+    it('GET /test/deprecated-full → 전체 deprecation 메타 + 헤더', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/deprecated-full')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.meta.deprecation.deprecated).toBe(true);
+      expect(res.body.meta.deprecation.since).toBe('2026-01-01T00:00:00.000Z');
+      expect(res.body.meta.deprecation.sunset).toBe('2026-12-31T00:00:00.000Z');
+      expect(res.body.meta.deprecation.message).toBe('Use /v2/users instead');
+      expect(res.body.meta.deprecation.link).toBe('/v2/users');
+
+      // Deprecation header with @-timestamp format
+      expect(res.headers['deprecation']).toMatch(/@\d+/);
+      // Sunset header
+      expect(res.headers['sunset']).toBeDefined();
+      // Link header
+      expect(res.headers['link']).toBeDefined();
+    });
+
+    it('GET /test/deprecated-error → 에러 응답에도 Deprecation 헤더 + deprecation 메타', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/deprecated-error')
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.headers['deprecation']).toBeDefined();
+      expect(res.body.meta.deprecation.deprecated).toBe(true);
+    });
+  });
+
+  // ─── Rate Limit ───
+
+  describe('Rate Limit', () => {
+    it('rateLimit: true → 응답에 meta.rateLimit 포함', async () => {
+      app = await createFastifyApp(TestAppRateLimitModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.meta.rateLimit).toBeDefined();
+      expect(res.body.meta.rateLimit.limit).toBe(100);
+      expect(res.body.meta.rateLimit.remaining).toBe(87);
+      expect(res.body.meta.rateLimit.reset).toBe(1712025600);
+    });
+
+    it('rateLimit 미설정 → meta.rateLimit 없음', async () => {
+      app = await createFastifyApp(TestAppModule);
+
+      const res = await request(app.getHttpServer())
+        .get('/test')
+        .expect(200);
+
+      expect(res.body.meta?.rateLimit).toBeUndefined();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { SafeResponseModule } from '../../src/safe-response.module';
@@ -174,3 +174,20 @@ export class TestAppProblemDetailsBaseUrlModule {}
   controllers: [TestController],
 })
 export class TestAppProblemDetailsFullModule {}
+
+@Module({
+  imports: [SafeResponseModule.register({ rateLimit: true })],
+  controllers: [TestController],
+})
+export class TestAppRateLimitModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply((req: any, res: any, next: () => void) => {
+        res.setHeader('X-RateLimit-Limit', '100');
+        res.setHeader('X-RateLimit-Remaining', '87');
+        res.setHeader('X-RateLimit-Reset', '1712025600');
+        next();
+      })
+      .forRoutes('*');
+  }
+}

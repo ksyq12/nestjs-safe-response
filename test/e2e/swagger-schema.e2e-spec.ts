@@ -301,6 +301,15 @@ describe('Swagger Schema E2E', () => {
     });
   });
 
+  // ─── @Deprecated() OpenAPI ───
+
+  describe('@Deprecated() OpenAPI', () => {
+    it('@Deprecated() 라우트가 OpenAPI에서 deprecated로 표시되어야 한다', () => {
+      const op = document.paths['/swagger-test/deprecated'].get;
+      expect(op.deprecated).toBe(true);
+    });
+  });
+
   // ─── OpenAPI 스키마 유효성 검증 ───
 
   describe('OpenAPI 스키마 유효성', () => {

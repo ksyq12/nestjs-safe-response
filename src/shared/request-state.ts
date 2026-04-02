@@ -21,3 +21,6 @@ export const REQUEST_ID = Symbol.for('safeResponse.requestId');
 
 /** Set by filter to prevent duplicate error handling when the module is registered more than once. */
 export const REQUEST_ERROR_HANDLED = Symbol.for('safeResponse.errorHandled');
+
+/** Set by interceptor: forward @Deprecated() metadata to the filter (filter cannot read handler metadata). */
+export const REQUEST_DEPRECATED = Symbol.for('safeResponse.deprecated');

@@ -13,6 +13,8 @@ export const FILTER_META_KEY = 'FILTER_META';
 
 export const SKIP_GLOBAL_ERRORS_KEY = 'SKIP_GLOBAL_ERRORS';
 
+export const DEPRECATED_KEY = 'DEPRECATED';
+
 export const DEFAULT_PROBLEM_TITLE_MAP: Record<number, string> = {
   400: 'Bad Request',
   401: 'Unauthorized',

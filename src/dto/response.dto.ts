@@ -84,6 +84,37 @@ export class FilterMetaDto {
   filters!: Record<string, unknown>;
 }
 
+export class DeprecationMetaDto {
+  @ApiProperty({ example: true, description: 'Whether this endpoint is deprecated' })
+  deprecated!: true;
+
+  @ApiPropertyOptional({ example: '2026-01-01T00:00:00.000Z', description: 'Date when the endpoint was deprecated (ISO 8601)' })
+  since?: string;
+
+  @ApiPropertyOptional({ example: '2026-12-31T00:00:00.000Z', description: 'Date when the endpoint will be removed (ISO 8601)' })
+  sunset?: string;
+
+  @ApiPropertyOptional({ example: 'Use /v2/users instead', description: 'Human-readable deprecation message' })
+  message?: string;
+
+  @ApiPropertyOptional({ example: '/v2/users', description: 'URL of the successor endpoint' })
+  link?: string;
+}
+
+export class RateLimitMetaDto {
+  @ApiProperty({ example: 100, description: 'Maximum requests allowed in the window' })
+  limit!: number;
+
+  @ApiProperty({ example: 87, description: 'Remaining requests in the current window' })
+  remaining!: number;
+
+  @ApiProperty({ example: 1712025600, description: 'Unix timestamp when the window resets' })
+  reset!: number;
+
+  @ApiPropertyOptional({ example: 30, description: 'Seconds to wait before retrying (only when rate limited)' })
+  retryAfter?: number;
+}
+
 @ApiExtraModels(PaginationMetaDto, CursorPaginationMetaDto)
 export class ResponseMetaDto {
   @ApiPropertyOptional({
@@ -105,6 +136,12 @@ export class ResponseMetaDto {
 
   @ApiPropertyOptional({ example: { status: 'active' }, description: 'Applied filters' })
   filters?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: DeprecationMetaDto, description: 'Endpoint deprecation information' })
+  deprecation?: DeprecationMetaDto;
+
+  @ApiPropertyOptional({ type: RateLimitMetaDto, description: 'Rate limit status' })
+  rateLimit?: RateLimitMetaDto;
 }
 
 export class SafeSuccessResponseDto {
@@ -146,6 +183,12 @@ export class ErrorDetailDto {
 export class ErrorResponseMetaDto {
   @ApiPropertyOptional({ example: 42, description: 'Response time in milliseconds' })
   responseTime?: number;
+
+  @ApiPropertyOptional({ type: DeprecationMetaDto, description: 'Endpoint deprecation information' })
+  deprecation?: DeprecationMetaDto;
+
+  @ApiPropertyOptional({ type: RateLimitMetaDto, description: 'Rate limit status' })
+  rateLimit?: RateLimitMetaDto;
 }
 
 export class SafeErrorResponseDto {

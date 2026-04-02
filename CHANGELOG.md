@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-04-02
+
+### Added
+- **API Deprecation decorator** — `@Deprecated()` sets RFC 9745 `Deprecation` header, RFC 8594 `Sunset` header, and `Link` header with `rel="successor-version"`. Automatically marks the Swagger operation as `deprecated: true`. Includes `meta.deprecation` in both success and error responses with `deprecated`, `since`, `sunset`, `message`, and `link` fields.
+- **Rate limit metadata** — `rateLimit` module option mirrors existing `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` response headers into `meta.rateLimit`. Works with any rate limiter that sets standard headers (`@nestjs/throttler`, API gateways, custom middleware). Optional `Retry-After` header included when present. Available in both success and error responses (especially useful for 429 responses).
+- `DeprecatedOptions`, `DeprecationMeta`, `RateLimitOptions`, `RateLimitMeta` type exports
+- `DeprecationMetaDto`, `RateLimitMetaDto` Swagger DTO classes
+- `DEPRECATED_KEY` constant export
+- Client type guards: `isDeprecated(meta)` and `hasRateLimit(meta)` in `nestjs-safe-response/client`
+- `getResponseHeader()` platform-agnostic response header reader in shared utilities
+
+### Changed
+- `ErrorResponseMetaDto` and `ProblemDetailsDto` meta now include optional `deprecation` and `rateLimit` fields, matching runtime behavior
+- Client `SafeErrorResponse.meta` and `SafeProblemDetailsResponse.meta` types now explicitly include `deprecation` and `rateLimit` fields
+- `ResponseMetaDto` now includes optional `deprecation` and `rateLimit` fields
+- Link header set by `@Deprecated({ link })` now appends to existing Link headers instead of overwriting (RFC 8288 compliant)
+
+### Fixed
+- **Rate limit in error responses**: rate limit metadata is now extracted in the exception filter, ensuring 429 Too Many Requests responses include `meta.rateLimit` when headers are available
+
+### Known Limitations
+- `@Deprecated()` metadata requires the interceptor to run before the filter can access it. If a Guard (e.g., `AuthGuard`) throws before the interceptor executes, the error response will not include deprecation headers or `meta.deprecation`. This is the same limitation as `@ProblemType()` and is inherent to the NestJS execution pipeline (Guard → Interceptor → Handler).
+
 ## [0.10.0] - 2026-04-01
 
 ### Added
@@ -184,6 +207,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NestJS v10 and v11 support
 - @nestjs/swagger v7, v8, and v11 support
 
+[0.11.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.11.0
+[0.10.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.10.0
+[0.9.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.9.0
 [0.8.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.8.0
 [0.7.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.7.0
 [0.6.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.6.0

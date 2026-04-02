@@ -16,6 +16,9 @@ import {
   SafeProblemDetailsResponse,
   ProblemDetailsOptions,
   RequestIdOptions,
+  DeprecatedOptions,
+  RateLimitOptions,
+  RateLimitMeta,
 } from '../interfaces';
 import { I18nAdapter } from '../adapters/i18n.adapter';
 import {
@@ -23,6 +26,7 @@ import {
   REQUEST_START_TIME,
   REQUEST_PROBLEM_TYPE,
   REQUEST_ID,
+  REQUEST_DEPRECATED,
 } from '../shared/request-state';
 import {
   SafeHttpRequest,
@@ -32,6 +36,9 @@ import {
   resolveContextMeta,
   sanitizeRequestId,
   setResponseHeader,
+  getResponseHeader,
+  buildDeprecationMeta,
+  setDeprecationHeaders,
 } from '../shared/response-helpers';
 
 @Catch()
@@ -120,6 +127,12 @@ export class SafeExceptionFilter implements ExceptionFilter {
     // Resolve request ID
     const requestId = this.resolveRequestId(request, response);
 
+    // Set deprecation headers on error responses (forwarded from interceptor)
+    const deprecatedOptions = request[REQUEST_DEPRECATED] as DeprecatedOptions | undefined;
+    if (deprecatedOptions) {
+      setDeprecationHeaders(response, deprecatedOptions);
+    }
+
     // Log 5xx errors with stack trace
     const requestUrl = httpAdapter.getRequestUrl(request);
     const requestMethod = httpAdapter.getRequestMethod(request);
@@ -164,7 +177,12 @@ export class SafeExceptionFilter implements ExceptionFilter {
         type = 'about:blank';
       }
 
-      const meta = { ...responseTimeMeta, ...contextMeta };
+      const deprecationMeta = deprecatedOptions
+        ? { deprecation: buildDeprecationMeta(deprecatedOptions) }
+        : {};
+      const rateLimitMeta = this.extractRateLimitMeta(response);
+      const rateLimitObj = rateLimitMeta ? { rateLimit: rateLimitMeta } : {};
+      const meta = { ...responseTimeMeta, ...contextMeta, ...deprecationMeta, ...rateLimitObj };
 
       const problemBody: SafeProblemDetailsResponse = {
         type,
@@ -197,7 +215,12 @@ export class SafeExceptionFilter implements ExceptionFilter {
       },
     };
 
-    const errorMeta = { ...responseTimeMeta, ...contextMeta };
+    const deprecationMetaObj = deprecatedOptions
+      ? { deprecation: buildDeprecationMeta(deprecatedOptions) }
+      : {};
+    const rateLimitMetaObj = this.extractRateLimitMeta(response);
+    const rateLimitObj = rateLimitMetaObj ? { rateLimit: rateLimitMetaObj } : {};
+    const errorMeta = { ...responseTimeMeta, ...contextMeta, ...deprecationMetaObj, ...rateLimitObj };
     if (Object.keys(errorMeta).length > 0) {
       body.meta = errorMeta;
     }
@@ -242,5 +265,45 @@ export class SafeExceptionFilter implements ExceptionFilter {
     setResponseHeader(response, headerNameOut, id);
 
     return id;
+  }
+
+  /**
+   * Extract rate limit metadata from response headers.
+   * Particularly useful for 429 responses where the Guard already set rate limit headers.
+   */
+  private extractRateLimitMeta(
+    response: SafeHttpResponse,
+  ): RateLimitMeta | undefined {
+    const opts = this.options.rateLimit;
+    if (!opts) return undefined;
+
+    const config: RateLimitOptions = typeof opts === 'object' ? opts : {};
+    const prefix = config.headerPrefix ?? 'X-RateLimit';
+
+    const limitStr = getResponseHeader(response, `${prefix}-Limit`);
+    const remainingStr = getResponseHeader(response, `${prefix}-Remaining`);
+    const resetStr = getResponseHeader(response, `${prefix}-Reset`);
+
+    if (!limitStr || !remainingStr || !resetStr) return undefined;
+
+    const limit = Number(limitStr);
+    const remaining = Number(remainingStr);
+    const reset = Number(resetStr);
+
+    if (Number.isNaN(limit) || Number.isNaN(remaining) || Number.isNaN(reset)) {
+      return undefined;
+    }
+
+    const meta: RateLimitMeta = { limit, remaining, reset };
+
+    const retryAfterStr = getResponseHeader(response, 'Retry-After');
+    if (retryAfterStr) {
+      const retryAfter = Number(retryAfterStr);
+      if (!Number.isNaN(retryAfter)) {
+        meta.retryAfter = retryAfter;
+      }
+    }
+
+    return meta;
   }
 }

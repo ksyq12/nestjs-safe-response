@@ -4,6 +4,9 @@ import {
   setResponseHeader,
   createClsServiceResolver,
   createI18nAdapterResolver,
+  getResponseHeader,
+  buildDeprecationMeta,
+  setDeprecationHeaders,
   SafeHttpResponse,
 } from './response-helpers';
 import { I18nAdapter } from '../adapters/i18n.adapter';
@@ -184,5 +187,179 @@ describe('createI18nAdapterResolver', () => {
     const second = resolver();
     expect(first).toBe(second);
     expect(first).toBe(adapter);
+  });
+});
+
+describe('getResponseHeader', () => {
+  it('Express 방식 (getHeader 함수 존재)', () => {
+    const res: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue('application/json'),
+    };
+    expect(getResponseHeader(res, 'Content-Type')).toBe('application/json');
+    expect(res.getHeader).toHaveBeenCalledWith('Content-Type');
+  });
+
+  it('Fastify 방식 (getHeader 함수 존재)', () => {
+    const res: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue('text/html'),
+    };
+    expect(getResponseHeader(res, 'Content-Type')).toBe('text/html');
+  });
+
+  it('getHeader 메서드 없으면 undefined', () => {
+    const res: SafeHttpResponse = {};
+    expect(getResponseHeader(res, 'Content-Type')).toBeUndefined();
+  });
+
+  it('배열 값 → 첫 번째 요소', () => {
+    const res: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue(['first', 'second']),
+    };
+    expect(getResponseHeader(res, 'X-Custom')).toBe('first');
+  });
+
+  it('숫자 값 → 문자열로 변환', () => {
+    const res: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue(42),
+    };
+    expect(getResponseHeader(res, 'Content-Length')).toBe('42');
+  });
+
+  it('undefined/null 값 → undefined', () => {
+    const resUndefined: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue(undefined),
+    };
+    expect(getResponseHeader(resUndefined, 'X-Missing')).toBeUndefined();
+
+    const resNull: SafeHttpResponse = {
+      getHeader: jest.fn().mockReturnValue(null),
+    };
+    expect(getResponseHeader(resNull, 'X-Missing')).toBeUndefined();
+  });
+});
+
+describe('buildDeprecationMeta', () => {
+  it('빈 옵션 → { deprecated: true }만', () => {
+    const meta = buildDeprecationMeta({});
+    expect(meta).toEqual({ deprecated: true });
+  });
+
+  it('since 문자열 → ISO string 변환', () => {
+    const meta = buildDeprecationMeta({ since: '2025-01-15' });
+    expect(meta.deprecated).toBe(true);
+    expect(meta.since).toBe(new Date('2025-01-15').toISOString());
+  });
+
+  it('since Date 객체 → ISO string 변환', () => {
+    const date = new Date('2025-06-01T00:00:00Z');
+    const meta = buildDeprecationMeta({ since: date });
+    expect(meta.since).toBe(date.toISOString());
+  });
+
+  it('sunset 문자열 → ISO string 변환', () => {
+    const meta = buildDeprecationMeta({ sunset: '2026-12-31' });
+    expect(meta.deprecated).toBe(true);
+    expect(meta.sunset).toBe(new Date('2026-12-31').toISOString());
+  });
+
+  it('message와 link 포함', () => {
+    const meta = buildDeprecationMeta({
+      message: 'Use v2 instead',
+      link: '/api/v2/users',
+    });
+    expect(meta.message).toBe('Use v2 instead');
+    expect(meta.link).toBe('/api/v2/users');
+  });
+
+  it('잘못된 날짜 → 해당 필드 생략', () => {
+    const meta = buildDeprecationMeta({ since: 'not-a-date', sunset: 'invalid' });
+    expect(meta).toEqual({ deprecated: true });
+    expect(meta.since).toBeUndefined();
+    expect(meta.sunset).toBeUndefined();
+  });
+
+  it('모든 옵션 → 전체 메타 반환', () => {
+    const meta = buildDeprecationMeta({
+      since: '2025-01-01',
+      sunset: '2026-12-31',
+      message: 'Deprecated endpoint',
+      link: '/api/v2/resource',
+    });
+    expect(meta.deprecated).toBe(true);
+    expect(meta.since).toBe(new Date('2025-01-01').toISOString());
+    expect(meta.sunset).toBe(new Date('2026-12-31').toISOString());
+    expect(meta.message).toBe('Deprecated endpoint');
+    expect(meta.link).toBe('/api/v2/resource');
+  });
+});
+
+describe('setDeprecationHeaders', () => {
+  it('빈 옵션 → Deprecation: true 설정', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn() };
+    setDeprecationHeaders(res, {});
+    expect(res.setHeader).toHaveBeenCalledWith('Deprecation', 'true');
+  });
+
+  it('since 옵션 → Deprecation: @timestamp 형식', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn() };
+    const since = '2025-01-15T00:00:00Z';
+    const expectedTs = Math.floor(new Date(since).getTime() / 1000);
+    setDeprecationHeaders(res, { since });
+    expect(res.setHeader).toHaveBeenCalledWith('Deprecation', `@${expectedTs}`);
+  });
+
+  it('sunset 옵션 → Sunset 헤더 (IMF-fixdate)', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn() };
+    const sunset = '2026-12-31T00:00:00Z';
+    setDeprecationHeaders(res, { sunset });
+    expect(res.setHeader).toHaveBeenCalledWith('Sunset', new Date(sunset).toUTCString());
+  });
+
+  it('link 옵션 → Link 헤더 (rel="successor-version")', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn(), getHeader: jest.fn().mockReturnValue(undefined) };
+    setDeprecationHeaders(res, { link: '/api/v2/users' });
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Link',
+      '</api/v2/users>; rel="successor-version"',
+    );
+  });
+
+  it('기존 Link 헤더가 있으면 append', () => {
+    const res: SafeHttpResponse = {
+      setHeader: jest.fn(),
+      getHeader: jest.fn().mockReturnValue('</next>; rel="next"'),
+    };
+    setDeprecationHeaders(res, { link: '/v2/users' });
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Link',
+      '</next>; rel="next", </v2/users>; rel="successor-version"',
+    );
+  });
+
+  it('모든 옵션 → 세 헤더 모두 설정', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn(), getHeader: jest.fn().mockReturnValue(undefined) };
+    const since = '2025-01-15T00:00:00Z';
+    const sunset = '2026-12-31T00:00:00Z';
+    setDeprecationHeaders(res, { since, sunset, link: '/v2' });
+
+    const expectedTs = Math.floor(new Date(since).getTime() / 1000);
+    expect(res.setHeader).toHaveBeenCalledWith('Deprecation', `@${expectedTs}`);
+    expect(res.setHeader).toHaveBeenCalledWith('Sunset', new Date(sunset).toUTCString());
+    expect(res.setHeader).toHaveBeenCalledWith('Link', '</v2>; rel="successor-version"');
+  });
+
+  it('잘못된 since → Deprecation: true 폴백', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn() };
+    setDeprecationHeaders(res, { since: 'not-a-date' });
+    expect(res.setHeader).toHaveBeenCalledWith('Deprecation', 'true');
+  });
+
+  it('잘못된 sunset → Sunset 헤더 생략', () => {
+    const res: SafeHttpResponse = { setHeader: jest.fn() };
+    setDeprecationHeaders(res, { sunset: 'invalid-date' });
+    expect(res.setHeader).not.toHaveBeenCalledWith(
+      'Sunset',
+      expect.anything(),
+    );
   });
 });

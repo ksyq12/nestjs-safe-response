@@ -9,6 +9,7 @@ import {
   CursorPaginated,
   ResponseMessage,
   SuccessCode,
+  Deprecated,
 } from './index';
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -17,6 +18,7 @@ import {
   CURSOR_PAGINATED_KEY,
   RESPONSE_MESSAGE_KEY,
   SUCCESS_CODE_KEY,
+  DEPRECATED_KEY,
 } from '../constants';
 
 const RESPONSE_METADATA_KEY = 'swagger/apiResponse';
@@ -367,5 +369,45 @@ describe('inferDetailsSchema fallback', () => {
     const errorProps = meta[400].schema.allOf[1].properties.error.properties;
     expect(errorProps.details.type).toBeUndefined();
     expect(errorProps.details.example).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deprecated
+// ---------------------------------------------------------------------------
+describe('Deprecated', () => {
+  it('빈 옵션으로 호출: DEPRECATED_KEY에 {} 저장 확인', () => {
+    class TestController {
+      @Deprecated()
+      oldRoute() {}
+    }
+
+    const value = Reflect.getMetadata(DEPRECATED_KEY, TestController.prototype.oldRoute);
+    expect(value).toEqual({});
+  });
+
+  it('옵션 전달: DEPRECATED_KEY에 옵션 객체 저장 확인', () => {
+    const opts = { since: '2025-01-01', sunset: '2026-12-31', link: '/v2/users' };
+    class TestController {
+      @Deprecated(opts)
+      oldRoute() {}
+    }
+
+    const value = Reflect.getMetadata(DEPRECATED_KEY, TestController.prototype.oldRoute);
+    expect(value).toEqual(opts);
+  });
+
+  it('deprecated swagger operation 마킹 확인', () => {
+    class TestController {
+      @Deprecated()
+      oldRoute() {}
+    }
+
+    const operationMeta = Reflect.getMetadata(
+      'swagger/apiOperation',
+      TestController.prototype.oldRoute,
+    );
+    expect(operationMeta).toBeDefined();
+    expect(operationMeta.deprecated).toBe(true);
   });
 });

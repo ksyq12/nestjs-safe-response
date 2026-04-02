@@ -8,6 +8,7 @@ import {
   ApiSafeErrorResponses,
   ApiSafeProblemResponse,
   Paginated,
+  Deprecated,
 } from '../../src/decorators';
 
 class UserDto {
@@ -134,6 +135,14 @@ export class SwaggerTestController {
   @ApiSafeErrorResponse(401)
   coexist() {
     return { id: 1, name: 'John' };
+  }
+
+  /** @Deprecated() — marks route as deprecated in OpenAPI */
+  @Get('deprecated')
+  @Deprecated()
+  @ApiSafeResponse(UserDto)
+  findDeprecated() {
+    return { id: 1, name: 'John', email: 'john@example.com' };
   }
 
   /** @ApiSafeProblemResponse — RFC 9457 Problem Details Swagger schema */

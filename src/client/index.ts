@@ -52,12 +52,29 @@ export interface SortInfo {
   order: 'asc' | 'desc';
 }
 
+export interface DeprecationMeta {
+  deprecated: true;
+  since?: string;
+  sunset?: string;
+  message?: string;
+  link?: string;
+}
+
+export interface RateLimitMeta {
+  limit: number;
+  remaining: number;
+  reset: number;
+  retryAfter?: number;
+}
+
 export interface ResponseMeta {
   pagination?: PaginationMeta | CursorPaginationMeta;
   message?: string;
   responseTime?: number;
   sort?: SortInfo;
   filters?: Record<string, unknown>;
+  deprecation?: DeprecationMeta;
+  rateLimit?: RateLimitMeta;
   [key: string]: unknown;
 }
 
@@ -83,6 +100,8 @@ export interface SafeErrorResponse {
   };
   meta?: {
     responseTime?: number;
+    deprecation?: DeprecationMeta;
+    rateLimit?: RateLimitMeta;
     [key: string]: unknown;
   };
   timestamp?: string;
@@ -100,6 +119,7 @@ export interface SafeProblemDetailsResponse {
   details?: unknown;
   meta?: {
     responseTime?: number;
+    deprecation?: DeprecationMeta;
     [key: string]: unknown;
   };
 }
@@ -183,5 +203,25 @@ export function hasFilters(
     typeof meta.filters === 'object' &&
     meta.filters !== null &&
     !Array.isArray(meta.filters)
+  );
+}
+
+/** Check if response meta indicates a deprecated endpoint */
+export function isDeprecated(
+  meta?: ResponseMeta,
+): meta is ResponseMeta & { deprecation: DeprecationMeta } {
+  return meta?.deprecation?.deprecated === true;
+}
+
+/** Check if response meta contains rate limit information with valid shape */
+export function hasRateLimit(
+  meta?: ResponseMeta,
+): meta is ResponseMeta & { rateLimit: RateLimitMeta } {
+  if (!meta?.rateLimit || typeof meta.rateLimit !== 'object') return false;
+  const rl = meta.rateLimit as unknown as Record<string, unknown>;
+  return (
+    typeof rl.limit === 'number' &&
+    typeof rl.remaining === 'number' &&
+    typeof rl.reset === 'number'
   );
 }

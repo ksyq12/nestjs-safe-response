@@ -13,6 +13,7 @@ import {
   ResponseMessage,
   SuccessCode,
   ProblemType,
+  Deprecated,
 } from '../../src/decorators';
 import { Exclude } from 'class-transformer';
 
@@ -174,5 +175,28 @@ export class TestController {
   @Get('edge-empty-string')
   edgeEmptyString() {
     return '';
+  }
+
+  @Get('deprecated')
+  @Deprecated()
+  findDeprecated() {
+    return { id: 1, name: 'Old endpoint' };
+  }
+
+  @Get('deprecated-full')
+  @Deprecated({
+    since: '2026-01-01T00:00:00.000Z',
+    sunset: '2026-12-31T00:00:00.000Z',
+    message: 'Use /v2/users instead',
+    link: '/v2/users',
+  })
+  findDeprecatedFull() {
+    return { id: 1, name: 'Old endpoint' };
+  }
+
+  @Get('deprecated-error')
+  @Deprecated({ sunset: '2026-12-31T00:00:00.000Z' })
+  findDeprecatedError() {
+    throw new NotFoundException('Resource not found');
   }
 }

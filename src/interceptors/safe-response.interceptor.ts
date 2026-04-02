@@ -20,6 +20,7 @@ import {
   PROBLEM_TYPE_KEY,
   SORT_META_KEY,
   FILTER_META_KEY,
+  DEPRECATED_KEY,
 } from '../constants';
 import {
   SafeResponseModuleOptions,
@@ -32,12 +33,16 @@ import {
   CursorPaginatedResult,
   CursorPaginationMeta,
   RequestIdOptions,
+  DeprecatedOptions,
+  RateLimitOptions,
+  RateLimitMeta,
 } from '../interfaces';
 import {
   REQUEST_WRAPPED,
   REQUEST_PROBLEM_TYPE,
   REQUEST_START_TIME,
   REQUEST_ID,
+  REQUEST_DEPRECATED,
 } from '../shared/request-state';
 import {
   SafeHttpRequest,
@@ -47,6 +52,9 @@ import {
   resolveContextMeta,
   sanitizeRequestId,
   setResponseHeader,
+  getResponseHeader,
+  buildDeprecationMeta,
+  setDeprecationHeaders,
 } from '../shared/response-helpers';
 
 @Injectable()
@@ -132,6 +140,16 @@ export class SafeResponseInterceptor implements NestInterceptor {
     );
     if (problemType) {
       request[REQUEST_PROBLEM_TYPE] = problemType;
+    }
+
+    // Forward @Deprecated() metadata + set deprecation headers
+    const deprecatedOptions = this.reflector.get<DeprecatedOptions>(
+      DEPRECATED_KEY,
+      context.getHandler(),
+    );
+    if (deprecatedOptions) {
+      request[REQUEST_DEPRECATED] = deprecatedOptions;
+      setDeprecationHeaders(responseObj, deprecatedOptions);
     }
 
     // Capture start time for response time calculation (shared with filter)
@@ -225,6 +243,17 @@ export class SafeResponseInterceptor implements NestInterceptor {
         const contextMeta = resolveContextMeta(this.options.context, this.getClsService);
         if (contextMeta) {
           response.meta = { ...response.meta, ...contextMeta };
+        }
+
+        // Deprecation metadata
+        if (deprecatedOptions) {
+          response.meta = { ...response.meta, deprecation: buildDeprecationMeta(deprecatedOptions) };
+        }
+
+        // Rate limit metadata (mirror response headers set by middleware/guards)
+        const rateLimitMeta = this.extractRateLimitMeta(responseObj);
+        if (rateLimitMeta) {
+          response.meta = { ...response.meta, rateLimit: rateLimitMeta };
         }
 
         const includeTimestamp = this.options.timestamp ?? true;
@@ -418,5 +447,47 @@ export class SafeResponseInterceptor implements NestInterceptor {
       next: buildUrl(nextCursor),
       last: null, // Cannot determine last page in cursor pagination
     };
+  }
+
+  /**
+   * Extract rate limit metadata from response headers set by middleware/guards.
+   * All three core headers (Limit, Remaining, Reset) must be present and numeric;
+   * partial data is suppressed to avoid confusing consumers.
+   */
+  private extractRateLimitMeta(
+    response: SafeHttpResponse,
+  ): RateLimitMeta | undefined {
+    const opts = this.options.rateLimit;
+    if (!opts) return undefined;
+
+    const config: RateLimitOptions = typeof opts === 'object' ? opts : {};
+    const prefix = config.headerPrefix ?? 'X-RateLimit';
+
+    const limitStr = getResponseHeader(response, `${prefix}-Limit`);
+    const remainingStr = getResponseHeader(response, `${prefix}-Remaining`);
+    const resetStr = getResponseHeader(response, `${prefix}-Reset`);
+
+    if (!limitStr || !remainingStr || !resetStr) return undefined;
+
+    const limit = Number(limitStr);
+    const remaining = Number(remainingStr);
+    const reset = Number(resetStr);
+
+    if (Number.isNaN(limit) || Number.isNaN(remaining) || Number.isNaN(reset)) {
+      return undefined;
+    }
+
+    const meta: RateLimitMeta = { limit, remaining, reset };
+
+    // Retry-After is optional (only present when rate limited)
+    const retryAfterStr = getResponseHeader(response, 'Retry-After');
+    if (retryAfterStr) {
+      const retryAfter = Number(retryAfterStr);
+      if (!Number.isNaN(retryAfter)) {
+        meta.retryAfter = retryAfter;
+      }
+    }
+
+    return meta;
   }
 }

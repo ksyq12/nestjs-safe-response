@@ -3,10 +3,11 @@ import {
   ApiExtraModels,
   ApiExtension,
   ApiOkResponse,
+  ApiOperation,
   ApiResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY, PROBLEM_TYPE_KEY, SORT_META_KEY, FILTER_META_KEY, SKIP_GLOBAL_ERRORS_KEY } from '../constants';
+import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY, PROBLEM_TYPE_KEY, SORT_META_KEY, FILTER_META_KEY, SKIP_GLOBAL_ERRORS_KEY, DEPRECATED_KEY } from '../constants';
 import {
   SafeSuccessResponseDto,
   SafeErrorResponseDto,
@@ -14,7 +15,7 @@ import {
   CursorPaginationMetaDto,
   ProblemDetailsDto,
 } from '../dto/response.dto';
-import { PaginatedOptions, CursorPaginatedOptions, ApiSafeErrorResponseOptions, ApiSafeErrorResponseConfig } from '../interfaces';
+import { PaginatedOptions, CursorPaginatedOptions, ApiSafeErrorResponseOptions, ApiSafeErrorResponseConfig, DeprecatedOptions } from '../interfaces';
 import { DEFAULT_ERROR_CODE_MAP } from '../constants';
 
 /**
@@ -304,6 +305,25 @@ export const SkipGlobalErrors = () =>
   applyDecorators(
     SetMetadata(SKIP_GLOBAL_ERRORS_KEY, true),
     ApiExtension('x-skip-global-errors', true),
+  );
+
+/**
+ * Mark a route as deprecated with RFC 9745 Deprecation and RFC 8594 Sunset headers.
+ * Also sets `deprecated: true` in the Swagger operation documentation.
+ *
+ * @param options - Optional deprecation configuration
+ *
+ * @example
+ * ```typescript
+ * @Get('v1/users')
+ * @Deprecated({ sunset: '2026-12-31', link: '/v2/users' })
+ * findAll() { ... }
+ * ```
+ */
+export const Deprecated = (options?: DeprecatedOptions) =>
+  applyDecorators(
+    SetMetadata(DEPRECATED_KEY, options ?? {}),
+    ApiOperation({ deprecated: true }),
   );
 
 /**

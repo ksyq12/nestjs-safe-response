@@ -22,8 +22,10 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 - **RFC 9457 Problem Details** — opt-in standard error format with `application/problem+json`
 - **Swagger integration** — `@ApiSafeResponse(Dto)` for success schemas, `@ApiSafeErrorResponse()` / `@ApiSafeErrorResponses()` for error schemas — all with the wrapped envelope
 - **Global error Swagger** — `applyGlobalErrors()` injects common error responses (401, 403, 500) into all OpenAPI operations
-- **Frontend client types** — `nestjs-safe-response/client` provides zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isProblemDetailsResponse`, `hasResponseTime`, `hasSort`, `hasFilters`) for frontend consumers
+- **Frontend client types** — `nestjs-safe-response/client` provides zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isProblemDetailsResponse`, `hasResponseTime`, `hasSort`, `hasFilters`, `isDeprecated`, `hasRateLimit`) for frontend consumers
 - **nestjs-i18n integration** — automatic error/success message translation via adapter pattern
+- **API deprecation** — `@Deprecated()` decorator with RFC 9745/8594 `Deprecation`/`Sunset` headers, Swagger `deprecated: true`, and response `meta.deprecation`
+- **Rate limit metadata** — opt-in `meta.rateLimit` mirroring of `X-RateLimit-*` response headers for frontend consumption
 - **nestjs-cls integration** — inject CLS store values (traceId, correlationId) into response `meta`
 - **class-validator support** — validation errors parsed into `details` array with "Validation failed" message
 - **Custom error codes** — map exceptions to machine-readable codes via `errorCodeMapper`
@@ -397,6 +399,12 @@ Response:
 }
 ```
 
+### `@Deprecated(options?)`
+
+Mark an endpoint as deprecated. Sets deprecation headers and Swagger `deprecated: true`.
+
+Options: `since`, `sunset`, `message`, `link`
+
 ### `@SkipGlobalErrors()`
 
 Excludes a route from `applyGlobalErrors()` global error injection. Useful for routes with custom error schemas.
@@ -512,6 +520,7 @@ import type { SafeResponse, SafeSuccessResponse } from 'nestjs-safe-response/cli
 import {
   isSuccess, isError, isPaginated, isOffsetPagination, isCursorPagination,
   isProblemDetailsResponse, hasResponseTime, hasSort, hasFilters,
+  isDeprecated, hasRateLimit,
 } from 'nestjs-safe-response/client';
 
 const res: SafeResponse<User[]> = await fetch('/api/users').then(r => r.json());
@@ -587,6 +596,84 @@ Response:
 }
 ```
 
+## API Deprecation
+
+Mark endpoints as deprecated with standard HTTP headers and response metadata.
+
+```typescript
+@Get('v1/users')
+@Deprecated({
+  since: '2026-01-01',           // RFC 9745 Deprecation header
+  sunset: '2026-12-31',          // RFC 8594 Sunset header
+  message: 'Use /v2/users instead',
+  link: '/v2/users',             // Link header with rel="successor-version"
+})
+findAll() { ... }
+```
+
+Headers set automatically:
+- `Deprecation: @1735689600` (or `true` if no `since` date)
+- `Sunset: Tue, 31 Dec 2026 00:00:00 GMT`
+- `Link: </v2/users>; rel="successor-version"`
+
+Response includes `meta.deprecation`:
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "deprecation": {
+      "deprecated": true,
+      "since": "2026-01-01T00:00:00.000Z",
+      "sunset": "2026-12-31T00:00:00.000Z",
+      "message": "Use /v2/users instead",
+      "link": "/v2/users"
+    }
+  }
+}
+```
+
+Swagger automatically shows the endpoint as deprecated. Works with both success and error responses.
+
+> **Note:** If a Guard throws before the interceptor runs (e.g., `AuthGuard` returns 401), the error response will not include deprecation headers. This is the same limitation as `@ProblemType()`.
+
+## Rate Limit Metadata
+
+Mirror rate limit response headers into the response body for frontend consumption.
+
+```typescript
+SafeResponseModule.register({
+  rateLimit: true,  // reads X-RateLimit-* headers
+})
+```
+
+Works with any rate limiter that sets standard headers (`@nestjs/throttler`, API gateways, custom middleware):
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "rateLimit": {
+      "limit": 100,
+      "remaining": 87,
+      "reset": 1712025600
+    }
+  }
+}
+```
+
+All three headers (`Limit`, `Remaining`, `Reset`) must be present; partial data is suppressed. Available in both success and error responses (including 429 Too Many Requests).
+
+### Custom Header Prefix
+
+```typescript
+SafeResponseModule.register({
+  rateLimit: { headerPrefix: 'RateLimit' },  // reads RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset
+})
+```
+
 ## Module Options
 
 ```typescript
@@ -627,6 +714,7 @@ SafeResponseModule.registerAsync({
 | `transformResponse` | `(data: unknown) => unknown` | `undefined` | Transform data before response wrapping (sync only) |
 | `swagger` | `SwaggerOptions` | `undefined` | Swagger documentation options (e.g., `globalErrors`) |
 | `context` | `ContextOptions` | `undefined` | Inject CLS store values (traceId, etc.) into response `meta`. Requires `nestjs-cls`. |
+| `rateLimit` | `boolean \| RateLimitOptions` | `undefined` | Mirror rate limit response headers into `meta.rateLimit` |
 | `i18n` | `boolean \| I18nAdapter` | `undefined` | Enable i18n for error/success messages. `true` auto-detects `nestjs-i18n`, or pass a custom adapter. |
 
 #### Success Code Mapping

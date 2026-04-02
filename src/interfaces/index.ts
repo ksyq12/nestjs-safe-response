@@ -16,6 +16,37 @@ export interface ContextOptions {
 
 export { I18nAdapter } from '../adapters/i18n.adapter';
 
+export interface DeprecatedOptions {
+  /** Date when the endpoint was deprecated (ISO string or Date object) */
+  since?: string | Date;
+  /** Date when the endpoint will be removed (ISO string or Date object) */
+  sunset?: string | Date;
+  /** Human-readable deprecation message for API consumers */
+  message?: string;
+  /** URL of the successor endpoint or migration guide */
+  link?: string;
+}
+
+export interface DeprecationMeta {
+  deprecated: true;
+  since?: string;
+  sunset?: string;
+  message?: string;
+  link?: string;
+}
+
+export interface RateLimitOptions {
+  /** Header name prefix (default: 'X-RateLimit'). Headers read: {prefix}-Limit, {prefix}-Remaining, {prefix}-Reset */
+  headerPrefix?: string;
+}
+
+export interface RateLimitMeta {
+  limit: number;
+  remaining: number;
+  reset: number;
+  retryAfter?: number;
+}
+
 export interface SwaggerOptions {
   /** Error responses to add to all routes (e.g., [401, 403, 500]) */
   globalErrors?: ApiSafeErrorResponseConfig[];
@@ -46,6 +77,8 @@ export interface SafeResponseModuleOptions {
   context?: ContextOptions;
   /** Enable i18n for error/success messages. true = auto-detect nestjs-i18n, or pass a custom I18nAdapter. */
   i18n?: boolean | import('../adapters/i18n.adapter').I18nAdapter;
+  /** Mirror rate limit response headers into meta.rateLimit. true uses defaults, or pass options object. */
+  rateLimit?: boolean | RateLimitOptions;
 }
 
 export interface ProblemDetailsOptions {
@@ -113,6 +146,8 @@ export interface ResponseMeta {
   responseTime?: number;
   sort?: SortInfo;
   filters?: Record<string, unknown>;
+  deprecation?: DeprecationMeta;
+  rateLimit?: RateLimitMeta;
   /** Additional context fields (e.g., traceId, correlationId) */
   [key: string]: unknown;
 }
@@ -139,6 +174,8 @@ export interface SafeErrorResponse {
   };
   meta?: {
     responseTime?: number;
+    deprecation?: DeprecationMeta;
+    rateLimit?: RateLimitMeta;
     /** Additional context fields (e.g., traceId, correlationId) */
     [key: string]: unknown;
   };

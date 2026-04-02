@@ -5,6 +5,7 @@ export {
   REQUEST_START_TIME,
   REQUEST_ID,
   REQUEST_ERROR_HANDLED,
+  REQUEST_DEPRECATED,
 } from './request-state';
 
 // Shared helpers
@@ -16,4 +17,7 @@ export {
   resolveContextMeta,
   sanitizeRequestId,
   setResponseHeader,
+  getResponseHeader,
+  buildDeprecationMeta,
+  setDeprecationHeaders,
 } from './response-helpers';

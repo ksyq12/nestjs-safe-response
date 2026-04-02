@@ -46,6 +46,39 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
     ],
     "type": "object",
   },
+  "DeprecationMetaDto": {
+    "properties": {
+      "deprecated": {
+        "description": "Whether this endpoint is deprecated",
+        "example": true,
+        "type": "boolean",
+      },
+      "link": {
+        "description": "URL of the successor endpoint",
+        "example": "/v2/users",
+        "type": "string",
+      },
+      "message": {
+        "description": "Human-readable deprecation message",
+        "example": "Use /v2/users instead",
+        "type": "string",
+      },
+      "since": {
+        "description": "Date when the endpoint was deprecated (ISO 8601)",
+        "example": "2026-01-01T00:00:00.000Z",
+        "type": "string",
+      },
+      "sunset": {
+        "description": "Date when the endpoint will be removed (ISO 8601)",
+        "example": "2026-12-31T00:00:00.000Z",
+        "type": "string",
+      },
+    },
+    "required": [
+      "deprecated",
+    ],
+    "type": "object",
+  },
   "ErrorDetailDto": {
     "properties": {
       "code": {
@@ -72,6 +105,22 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
   },
   "ErrorResponseMetaDto": {
     "properties": {
+      "deprecation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DeprecationMetaDto",
+          },
+        ],
+        "description": "Endpoint deprecation information",
+      },
+      "rateLimit": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RateLimitMetaDto",
+          },
+        ],
+        "description": "Rate limit status",
+      },
       "responseTime": {
         "description": "Response time in milliseconds",
         "example": 42,
@@ -224,8 +273,46 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
     ],
     "type": "object",
   },
+  "RateLimitMetaDto": {
+    "properties": {
+      "limit": {
+        "description": "Maximum requests allowed in the window",
+        "example": 100,
+        "type": "number",
+      },
+      "remaining": {
+        "description": "Remaining requests in the current window",
+        "example": 87,
+        "type": "number",
+      },
+      "reset": {
+        "description": "Unix timestamp when the window resets",
+        "example": 1712025600,
+        "type": "number",
+      },
+      "retryAfter": {
+        "description": "Seconds to wait before retrying (only when rate limited)",
+        "example": 30,
+        "type": "number",
+      },
+    },
+    "required": [
+      "limit",
+      "remaining",
+      "reset",
+    ],
+    "type": "object",
+  },
   "ResponseMetaDto": {
     "properties": {
+      "deprecation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DeprecationMetaDto",
+          },
+        ],
+        "description": "Endpoint deprecation information",
+      },
       "filters": {
         "description": "Applied filters",
         "example": {
@@ -247,6 +334,14 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
             "$ref": "#/components/schemas/CursorPaginationMetaDto",
           },
         ],
+      },
+      "rateLimit": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RateLimitMetaDto",
+          },
+        ],
+        "description": "Rate limit status",
       },
       "responseTime": {
         "description": "Response time in milliseconds",
@@ -627,6 +722,44 @@ exports[`Swagger Schema E2E API 계약 스냅샷 전체 paths 구조가 변경�
           "description": "Error response (400)",
         },
       },
+      "tags": [
+        "SwaggerTest",
+      ],
+    },
+  },
+  "/swagger-test/deprecated": {
+    "get": {
+      "deprecated": true,
+      "operationId": "SwaggerTestController_findDeprecated",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SafeSuccessResponseDto",
+                  },
+                  {
+                    "properties": {
+                      "data": {
+                        "$ref": "#/components/schemas/UserDto",
+                      },
+                      "success": {
+                        "example": true,
+                        "type": "boolean",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+      },
+      "summary": "",
       "tags": [
         "SwaggerTest",
       ],

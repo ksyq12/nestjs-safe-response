@@ -17,6 +17,10 @@ import type {
   SafeResponseModuleAsyncOptions,
   ApiSafeErrorResponseOptions,
   ApiSafeErrorResponseConfig,
+  DeprecatedOptions,
+  DeprecationMeta,
+  RateLimitOptions,
+  RateLimitMeta,
 } from './dist';
 import { applyGlobalErrors } from './dist';
 import type { OpenAPIObject } from '@nestjs/swagger';
@@ -366,3 +370,114 @@ expectType<OpenAPIObject>(resultDoc);
 // Chaining: result should be assignable back to OpenAPIObject
 const chainedDoc: OpenAPIObject = applyGlobalErrors(openApiDoc, globalErrorOpts);
 expectType<OpenAPIObject>(chainedDoc);
+
+// ─── DeprecatedOptions ──────────────────────────────────────────────
+
+// DeprecatedOptions accepts all fields as optional
+const deprecatedEmpty: DeprecatedOptions = {};
+expectAssignable<DeprecatedOptions>(deprecatedEmpty);
+
+const deprecatedFull: DeprecatedOptions = {
+  since: '2026-01-01',
+  sunset: new Date('2026-12-31'),
+  message: 'Use /v2 instead',
+  link: '/v2/users',
+};
+expectAssignable<DeprecatedOptions>(deprecatedFull);
+
+// since/sunset accept both string and Date
+expectAssignable<DeprecatedOptions>({ since: new Date() });
+expectAssignable<DeprecatedOptions>({ sunset: '2026-06-01' });
+
+// ─── DeprecationMeta ────────────────────────────────────────────────
+
+const deprecationMeta: DeprecationMeta = {
+  deprecated: true,
+  since: '2026-01-01T00:00:00.000Z',
+  sunset: '2026-12-31T00:00:00.000Z',
+  message: 'Use /v2 instead',
+  link: '/v2/users',
+};
+expectType<true>(deprecationMeta.deprecated);
+expectType<string | undefined>(deprecationMeta.since);
+expectType<string | undefined>(deprecationMeta.sunset);
+
+// DeprecationMeta deprecated must be literal true
+expectNotAssignable<DeprecationMeta>({ deprecated: false });
+
+// ─── RateLimitOptions ───────────────────────────────────────────────
+
+const rateLimitEmpty: RateLimitOptions = {};
+expectAssignable<RateLimitOptions>(rateLimitEmpty);
+
+const rateLimitCustom: RateLimitOptions = { headerPrefix: 'RateLimit' };
+expectAssignable<RateLimitOptions>(rateLimitCustom);
+
+// ─── RateLimitMeta ──────────────────────────────────────────────────
+
+const rateLimitMeta: RateLimitMeta = {
+  limit: 100,
+  remaining: 87,
+  reset: 1712025600,
+};
+expectType<number>(rateLimitMeta.limit);
+expectType<number>(rateLimitMeta.remaining);
+expectType<number>(rateLimitMeta.reset);
+expectType<number | undefined>(rateLimitMeta.retryAfter);
+
+// With retryAfter
+const rateLimitFull: RateLimitMeta = { limit: 100, remaining: 0, reset: 1712025600, retryAfter: 30 };
+expectType<number | undefined>(rateLimitFull.retryAfter);
+
+// ─── SafeResponseModuleOptions rateLimit ────────────────────────────
+
+// rateLimit accepts boolean
+expectAssignable<SafeResponseModuleOptions>({ rateLimit: true });
+expectAssignable<SafeResponseModuleOptions>({ rateLimit: false });
+// rateLimit accepts RateLimitOptions
+expectAssignable<SafeResponseModuleOptions>({ rateLimit: { headerPrefix: 'X-RateLimit' } });
+
+// ─── ResponseMeta includes deprecation and rateLimit ────────────────
+
+const metaWithDeprecation: ResponseMeta = {
+  deprecation: { deprecated: true, message: 'old' },
+};
+expectAssignable<ResponseMeta>(metaWithDeprecation);
+
+const metaWithRateLimit: ResponseMeta = {
+  rateLimit: { limit: 100, remaining: 50, reset: 1712025600 },
+};
+expectAssignable<ResponseMeta>(metaWithRateLimit);
+
+// ─── Client Type Guards (v0.11.0) ────────────────────────────────
+
+import type {
+  DeprecationMeta as ClientDeprecation,
+  RateLimitMeta as ClientRateLimit,
+} from './dist/client';
+import {
+  isDeprecated,
+  hasRateLimit,
+} from './dist/client';
+
+// isDeprecated narrows meta to include deprecation: DeprecationMeta
+const metaDeprecated: ClientMeta = { deprecation: { deprecated: true, message: 'old' } };
+if (isDeprecated(metaDeprecated)) {
+  expectType<ClientDeprecation>(metaDeprecated.deprecation);
+  expectType<true>(metaDeprecated.deprecation.deprecated);
+  expectType<string | undefined>(metaDeprecated.deprecation.since);
+}
+
+// hasRateLimit narrows meta to include rateLimit: RateLimitMeta
+const metaRateLimit: ClientMeta = { rateLimit: { limit: 100, remaining: 50, reset: 1712025600 } };
+if (hasRateLimit(metaRateLimit)) {
+  expectType<ClientRateLimit>(metaRateLimit.rateLimit);
+  expectType<number>(metaRateLimit.rateLimit.limit);
+  expectType<number>(metaRateLimit.rateLimit.remaining);
+  expectType<number>(metaRateLimit.rateLimit.reset);
+  expectType<number | undefined>(metaRateLimit.rateLimit.retryAfter);
+}
+
+// Guards return false for undefined meta
+expectType<boolean>(isDeprecated(undefined));
+expectType<boolean>(hasRateLimit(undefined));
