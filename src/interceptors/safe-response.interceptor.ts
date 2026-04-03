@@ -312,7 +312,11 @@ export class SafeResponseInterceptor implements NestInterceptor {
       request.headers?.[headerName],
     );
     if (!id) {
-      id = (config.generator ?? (() => randomUUID()))();
+      try {
+        id = (config.generator ?? (() => randomUUID()))();
+      } catch {
+        id = randomUUID();
+      }
     }
 
     // Set response header for downstream tracking

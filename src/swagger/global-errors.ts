@@ -185,6 +185,23 @@ function ensureErrorSchema(document: Record<string, unknown>, useProblemDetails:
             type: 'object',
             properties: {
               responseTime: { type: 'number', example: 42 },
+              deprecation: {
+                type: 'object',
+                properties: {
+                  deprecated: { type: 'boolean', example: true },
+                  since: { type: 'string', example: '2025-01-01T00:00:00.000Z' },
+                  sunset: { type: 'string', example: '2026-12-31T00:00:00.000Z' },
+                },
+              },
+              rateLimit: {
+                type: 'object',
+                properties: {
+                  limit: { type: 'number', example: 100 },
+                  remaining: { type: 'number', example: 42 },
+                  reset: { type: 'number', example: 1700000000 },
+                  retryAfter: { type: 'number', example: 30 },
+                },
+              },
             },
             additionalProperties: true,
           },

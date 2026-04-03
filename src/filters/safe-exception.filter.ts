@@ -265,7 +265,11 @@ export class SafeExceptionFilter implements ExceptionFilter {
     const headerName = (config.headerName ?? 'X-Request-Id').toLowerCase();
     let id = sanitizeRequestId(request.headers?.[headerName]);
     if (!id) {
-      id = (config.generator ?? (() => randomUUID()))();
+      try {
+        id = (config.generator ?? (() => randomUUID()))();
+      } catch {
+        id = randomUUID();
+      }
     }
 
     // Set response header (only when interceptor didn't already set it)

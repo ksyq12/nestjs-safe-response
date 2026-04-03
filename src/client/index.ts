@@ -120,12 +120,16 @@ export interface SafeProblemDetailsResponse {
   meta?: {
     responseTime?: number;
     deprecation?: DeprecationMeta;
+    rateLimit?: RateLimitMeta;
     [key: string]: unknown;
   };
 }
 
-/** Union type for any API response */
+/** Union type for standard API responses (success or error envelope) */
 export type SafeResponse<T = unknown> = SafeSuccessResponse<T> | SafeErrorResponse;
+
+/** Broader union including RFC 9457 Problem Details (when `problemDetails` is enabled) */
+export type SafeAnyResponse<T = unknown> = SafeSuccessResponse<T> | SafeErrorResponse | SafeProblemDetailsResponse;
 
 // ─── Type Guards ────────────────────────────────────────────────────
 

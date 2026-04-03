@@ -101,6 +101,8 @@ export interface SafeProblemDetailsResponse {
   /** Extension member: response time and context */
   meta?: {
     responseTime?: number;
+    deprecation?: DeprecationMeta;
+    rateLimit?: RateLimitMeta;
     /** Additional context fields (e.g., traceId, correlationId) */
     [key: string]: unknown;
   };
