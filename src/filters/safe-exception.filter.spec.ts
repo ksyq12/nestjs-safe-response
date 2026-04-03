@@ -1010,6 +1010,53 @@ describe('SafeExceptionFilter', () => {
       expect(body.detail).toBe('찾을 수 없습니다');
     });
 
+    it('Problem Details 모드에서 title 필드를 번역', () => {
+      const mockAdapter = {
+        translate: jest.fn((key: string) => key === 'Not Found' ? '찾을 수 없음' : key),
+        resolveLanguage: jest.fn(() => 'ko'),
+      };
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: true,
+        i18n: mockAdapter,
+      });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.title).toBe('찾을 수 없음');
+    });
+
+    it('i18n 없이 Problem Details → title은 영어 기본값', () => {
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, { problemDetails: true });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.title).toBe('Not Found');
+    });
+
+    it('i18n 어댑터가 예외 → title은 원본 영어 폴백', () => {
+      const throwingAdapter = {
+        translate: () => { throw new Error('crash'); },
+        resolveLanguage: () => 'en',
+      };
+      const { adapterHost, replyFn } = createMockHttpAdapterHost();
+      const filter = createFilter(adapterHost, {
+        problemDetails: true,
+        i18n: throwingAdapter,
+      });
+      const host = createMockArgumentsHost();
+
+      filter.catch(new NotFoundException(), host);
+
+      const body = replyFn.mock.calls[0][1];
+      expect(body.title).toBe('Not Found');
+    });
+
     it('커스텀 i18n 어댑터를 사용할 수 있음', () => {
       const customAdapter = {
         translate: (key: string) => `[translated] ${key}`,

@@ -188,7 +188,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
       const problemBody: SafeProblemDetailsResponse = {
         type,
-        title: DEFAULT_PROBLEM_TITLE_MAP[statusCode] ?? 'Error',
+        title: this.translateMessage(DEFAULT_PROBLEM_TITLE_MAP[statusCode] ?? 'Error', request),
         status: statusCode,
         detail: translatedMessage,
         instance: requestUrl,

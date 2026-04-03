@@ -80,31 +80,36 @@ export class SafeResponseInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const handler = context.getHandler();
+
     const isRaw = this.reflector.get<boolean>(
       RAW_RESPONSE_KEY,
-      context.getHandler(),
+      handler,
     );
 
     if (isRaw) {
       return next.handle();
     }
 
+    // Single switchToHttp() call — reused for idempotency guard and main logic
+    const httpCtx = context.switchToHttp();
+    const request = httpCtx.getRequest<SafeHttpRequest>();
+    const responseObj = httpCtx.getResponse<SafeHttpResponse>();
+
     // Idempotency guard: skip if another instance already marked this request
-    const httpCtxEarly = context.switchToHttp();
-    const requestEarly = httpCtxEarly.getRequest<SafeHttpRequest>();
-    if (requestEarly[REQUEST_WRAPPED]) {
+    if (request[REQUEST_WRAPPED]) {
       return next.handle();
     }
-    requestEarly[REQUEST_WRAPPED] = true;
+    request[REQUEST_WRAPPED] = true;
 
     const paginatedOptions = this.reflector.get<PaginatedOptions | true>(
       PAGINATED_KEY,
-      context.getHandler(),
+      handler,
     );
 
     const cursorPaginatedOptions = this.reflector.get<
       CursorPaginatedOptions | true
-    >(CURSOR_PAGINATED_KEY, context.getHandler());
+    >(CURSOR_PAGINATED_KEY, handler);
 
     if (paginatedOptions && cursorPaginatedOptions) {
       throw new Error(
@@ -114,17 +119,17 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
     const customMessage = this.reflector.get<string>(
       RESPONSE_MESSAGE_KEY,
-      context.getHandler(),
+      handler,
     );
 
     const successCode = this.reflector.get<string>(
       SUCCESS_CODE_KEY,
-      context.getHandler(),
+      handler,
     );
 
-    const httpCtx = context.switchToHttp();
-    const request = httpCtx.getRequest<SafeHttpRequest>();
-    const responseObj = httpCtx.getResponse<SafeHttpResponse>();
+    const includeSortMeta = this.reflector.get<boolean>(SORT_META_KEY, handler);
+    const includeFilterMeta = this.reflector.get<boolean>(FILTER_META_KEY, handler);
+
     const statusCode = (responseObj as { statusCode: number }).statusCode;
 
     // Resolve request ID (once per request, shared with filter)
@@ -134,7 +139,7 @@ export class SafeResponseInterceptor implements NestInterceptor {
     // (ArgumentsHost in filter lacks getHandler(), so we store it here)
     const problemType = this.reflector.get<string>(
       PROBLEM_TYPE_KEY,
-      context.getHandler(),
+      handler,
     );
     if (problemType) {
       request[REQUEST_PROBLEM_TYPE] = problemType;
@@ -143,7 +148,7 @@ export class SafeResponseInterceptor implements NestInterceptor {
     // Forward @Deprecated() metadata + set deprecation headers
     const deprecatedOptions = this.reflector.get<DeprecatedOptions>(
       DEPRECATED_KEY,
-      context.getHandler(),
+      handler,
     );
     if (deprecatedOptions) {
       request[REQUEST_DEPRECATED] = deprecatedOptions;
@@ -183,6 +188,10 @@ export class SafeResponseInterceptor implements NestInterceptor {
           data,
         };
 
+        // Build meta as a single mutable object — avoids 7 intermediate spread allocations
+        const meta: Record<string, unknown> = {};
+
+        // Pagination
         if (paginatedOptions && this.isPaginatedResult(data)) {
           const opts = paginatedOptions === true ? {} : paginatedOptions;
           const pagination = this.calculatePagination(data, opts);
@@ -195,7 +204,7 @@ export class SafeResponseInterceptor implements NestInterceptor {
             );
           }
           response.data = data.data;
-          response.meta = { pagination };
+          meta.pagination = pagination;
         } else if (
           cursorPaginatedOptions &&
           this.isCursorPaginatedResult(data)
@@ -211,24 +220,19 @@ export class SafeResponseInterceptor implements NestInterceptor {
             );
           }
           response.data = data.data;
-          response.meta = { pagination };
+          meta.pagination = pagination;
         }
 
-        // Sort/Filter metadata — include if decorators are present and data provides them
-        const includeSortMeta = this.reflector.get<boolean>(SORT_META_KEY, context.getHandler());
-        const includeFilterMeta = this.reflector.get<boolean>(FILTER_META_KEY, context.getHandler());
-
+        // Sort/Filter metadata
         if (includeSortMeta && data && typeof data === 'object' && 'sort' in data && data.sort) {
-          response.meta = { ...response.meta, sort: data.sort };
+          meta.sort = data.sort;
         }
         if (includeFilterMeta && data && typeof data === 'object' && 'filters' in data && data.filters) {
-          response.meta = { ...response.meta, filters: data.filters };
+          meta.filters = data.filters;
         }
 
+        // Translated message
         if (customMessage) {
-          // Translate message if i18n is enabled.
-          // try/catch protects against custom I18nAdapter exceptions —
-          // a translation failure must not break the success response pipeline.
           let message = customMessage;
           try {
             const i18nAdapter = this.getI18nAdapter();
@@ -238,26 +242,37 @@ export class SafeResponseInterceptor implements NestInterceptor {
           } catch {
             // Fall back to the original untranslated message
           }
-          response.meta = { ...response.meta, message };
+          meta.message = message;
         }
 
-        // Inject CLS context fields into meta
+        // CLS context fields
         const contextMeta = resolveContextMeta(this.options.context, this.getClsService);
         if (contextMeta) {
-          response.meta = { ...response.meta, ...contextMeta };
+          Object.assign(meta, contextMeta);
         }
 
         // Deprecation metadata
         if (deprecatedOptions) {
-          response.meta = { ...response.meta, deprecation: buildDeprecationMeta(deprecatedOptions) };
+          meta.deprecation = buildDeprecationMeta(deprecatedOptions);
         }
 
-        // Rate limit metadata (mirror response headers set by middleware/guards)
+        // Rate limit metadata
         const rateLimitMeta = extractRateLimitMeta(responseObj, this.options.rateLimit);
         if (rateLimitMeta) {
-          response.meta = { ...response.meta, rateLimit: rateLimitMeta };
+          meta.rateLimit = rateLimitMeta;
         }
 
+        // Response time
+        if (includeResponseTime && startTime !== undefined) {
+          meta.responseTime = Math.round(performance.now() - startTime);
+        }
+
+        // Assign meta only if it has fields
+        if (Object.keys(meta).length > 0) {
+          response.meta = meta;
+        }
+
+        // Timestamp and path
         const includeTimestamp = this.options.timestamp ?? true;
         const includePath = this.options.path ?? true;
 
@@ -275,13 +290,6 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
         if (includePath) {
           response.path = request.url;
-        }
-
-        if (includeResponseTime && startTime !== undefined) {
-          response.meta = {
-            ...response.meta,
-            responseTime: Math.round(performance.now() - startTime),
-          };
         }
 
         return response;

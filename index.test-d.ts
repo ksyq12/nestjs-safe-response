@@ -481,3 +481,57 @@ if (hasRateLimit(metaRateLimit)) {
 // Guards return false for undefined meta
 expectType<boolean>(isDeprecated(undefined));
 expectType<boolean>(hasRateLimit(undefined));
+
+// ─── Client ↔ Server Type Sync Verification ───
+// Ensures client types remain structurally compatible with server types.
+// If a field is added/removed on one side, tsd will catch the drift.
+
+import type {
+  SafeSuccessResponse as SyncClientSuccess,
+  SafeErrorResponse as SyncClientError,
+  SafeProblemDetailsResponse as SyncClientProblem,
+  PaginationMeta as SyncClientPaginationMeta,
+  CursorPaginationMeta as SyncClientCursorMeta,
+  PaginationLinks as SyncClientLinks,
+  SortInfo as SyncClientSort,
+  DeprecationMeta as SyncClientDeprecation,
+  RateLimitMeta as SyncClientRateLimit,
+} from './dist/client';
+
+// Server → Client assignability
+declare const syncServerSuccess: SafeSuccessResponse<{ id: number }>;
+expectAssignable<SyncClientSuccess<{ id: number }>>(syncServerSuccess);
+
+declare const syncServerError: SafeErrorResponse;
+expectAssignable<SyncClientError>(syncServerError);
+
+declare const syncServerProblem: SafeProblemDetailsResponse;
+expectAssignable<SyncClientProblem>(syncServerProblem);
+
+declare const syncServerPagination: PaginationMeta;
+expectAssignable<SyncClientPaginationMeta>(syncServerPagination);
+
+declare const syncServerCursor: CursorPaginationMeta;
+expectAssignable<SyncClientCursorMeta>(syncServerCursor);
+
+declare const syncServerLinks: PaginationLinks;
+expectAssignable<SyncClientLinks>(syncServerLinks);
+
+declare const syncServerSort: import('./dist').SortInfo;
+expectAssignable<SyncClientSort>(syncServerSort);
+
+declare const syncServerDeprecation: DeprecationMeta;
+expectAssignable<SyncClientDeprecation>(syncServerDeprecation);
+
+declare const syncServerRateLimit: RateLimitMeta;
+expectAssignable<SyncClientRateLimit>(syncServerRateLimit);
+
+// Client → Server assignability
+declare const syncClientSuccess: SyncClientSuccess<{ id: number }>;
+expectAssignable<SafeSuccessResponse<{ id: number }>>(syncClientSuccess);
+
+declare const syncClientError: SyncClientError;
+expectAssignable<SafeErrorResponse>(syncClientError);
+
+declare const syncClientProblem: SyncClientProblem;
+expectAssignable<SafeProblemDetailsResponse>(syncClientProblem);

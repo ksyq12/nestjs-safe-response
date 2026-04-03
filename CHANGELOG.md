@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-04-03
+
+### Changed
+- **Interceptor refactoring** — `map()` callback reorganized: all `reflector.get()` calls moved to setup phase (before `pipe`), duplicate `context.switchToHttp()` consolidated to a single call, and `context.getHandler()` result cached in a local variable for reuse across 9 reflector reads. Net reduction: ~20 lines, 1 fewer `switchToHttp()` allocation per request.
+- **Meta assembly optimization** — replaced 7 sequential `response.meta = { ...response.meta, ... }` spread operations with a single mutable `meta` object built incrementally. Eliminates 6 intermediate object allocations per request. Final assignment only occurs when at least one meta field is present.
+- **Problem Details `title` now translated** — when `problemDetails` and `i18n` are both enabled, the RFC 9457 `title` field (e.g., "Not Found", "Bad Request") is now passed through `translateMessage()`. Previously only `detail` was translated. Without i18n configured, behavior is unchanged (English titles).
+- Decorator metadata key constants (`CURSOR_PAGINATED_KEY`, `PROBLEM_TYPE_KEY`, `SORT_META_KEY`, `FILTER_META_KEY`, `SKIP_GLOBAL_ERRORS_KEY`, `DEPRECATED_KEY`) are now marked `@internal` in JSDoc. These will be removed from public exports in v1.0.0 — use the corresponding decorators instead.
+
+### Added
+- **Client ↔ Server type sync tests** — bidirectional `expectAssignable` assertions in `index.test-d.ts` verify that client types (`nestjs-safe-response/client`) remain structurally compatible with server types. Catches type drift at build time.
+- 3 new unit tests for Problem Details title translation (translated, default English, adapter exception fallback)
+
+### Fixed
+- **User callback safety** (from pre-release audit) — `errorCodeMapper`, `dateFormatter`, and `successCodeMapper` callbacks are now wrapped in try-catch. A throwing callback no longer crashes the filter/interceptor.
+- **Rate limit code duplication** — `extractRateLimitMeta()` extracted to `shared/response-helpers.ts`, eliminating ~35 lines of identical code between the interceptor and filter.
+- **Missing error codes** — added `405 METHOD_NOT_ALLOWED`, `502 BAD_GATEWAY`, `503 SERVICE_UNAVAILABLE` to `DEFAULT_ERROR_CODE_MAP`.
+- **Error log correlation** — 5xx error log messages now include `[requestId]` (or `[-]` when disabled) for production debugging.
+
+### Infrastructure
+- **ESLint** — added `eslint.config.mjs` (typescript-eslint flat config) and `npm run lint` script. CI now runs lint before build.
+- **Codecov** — coverage uploaded to Codecov on Node 22 + NestJS 11 CI matrix combination.
+- **Jest** — functions coverage threshold raised from 60% to 75%.
+
 ## [0.11.0] - 2026-04-02
 
 ### Added
@@ -207,6 +230,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NestJS v10 and v11 support
 - @nestjs/swagger v7, v8, and v11 support
 
+[0.12.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.12.0
 [0.11.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.11.0
 [0.10.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.10.0
 [0.9.0]: https://github.com/ksyq12/nestjs-safe-response/releases/tag/v0.9.0

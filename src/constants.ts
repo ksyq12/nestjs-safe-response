@@ -1,18 +1,25 @@
+/** @internal DI token for module options. */
 export const SAFE_RESPONSE_OPTIONS = 'SAFE_RESPONSE_OPTIONS';
+
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const RAW_RESPONSE_KEY = 'RAW_RESPONSE';
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const PAGINATED_KEY = 'PAGINATED';
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE';
-
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const SUCCESS_CODE_KEY = 'SUCCESS_CODE';
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const CURSOR_PAGINATED_KEY = 'CURSOR_PAGINATED';
-
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const PROBLEM_TYPE_KEY = 'PROBLEM_TYPE';
-
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const SORT_META_KEY = 'SORT_META';
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const FILTER_META_KEY = 'FILTER_META';
-
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const SKIP_GLOBAL_ERRORS_KEY = 'SKIP_GLOBAL_ERRORS';
-
+/** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const DEPRECATED_KEY = 'DEPRECATED';
 
 export const DEFAULT_PROBLEM_TITLE_MAP: Record<number, string> = {
