@@ -1,4 +1,4 @@
-import { CallHandler, ExecutionContext } from '@nestjs/common';
+import { CallHandler, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { of, lastValueFrom } from 'rxjs';
 import { SafeResponseInterceptor } from './safe-response.interceptor';
@@ -1960,6 +1960,159 @@ describe('SafeResponseInterceptor', () => {
       );
 
       expect(result.meta?.message).toBe('hello.key');
+    });
+  });
+
+  // ─── Shape-mismatch warnings ───
+
+  describe('shape-mismatch warnings', () => {
+    let loggerWarnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      loggerWarnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+      loggerWarnSpy.mockRestore();
+    });
+
+    it('@Paginated() + non-paginated data → Logger.warn with expected shape', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ url: '/api/users' });
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@Paginated()'),
+      );
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('{ data: T[], total: number, page: number, limit: number }'),
+      );
+    });
+
+    it('@CursorPaginated() + non-cursor data → Logger.warn', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === CURSOR_PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ url: '/api/items' });
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@CursorPaginated()'),
+      );
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('{ data: T[], nextCursor: string|null, hasMore: boolean, limit: number }'),
+      );
+    });
+
+    it('@SortMeta() + data without sort field → Logger.warn', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === SORT_META_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ url: '/api/items' });
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@SortMeta()'),
+      );
+    });
+
+    it('@FilterMeta() + data without filters field → Logger.warn', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === FILTER_META_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext({ url: '/api/items' });
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@FilterMeta()'),
+      );
+    });
+
+    it('no warning when data matches PaginatedResult shape', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+      const paginatedData = { data: [{ id: 1 }], total: 1, page: 1, limit: 10 };
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(paginatedData)),
+      );
+
+      expect(loggerWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it('suppressWarnings: true → no warnings emitted', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor({ suppressWarnings: true });
+      const ctx = createMockExecutionContext();
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler({ id: 1 })),
+      );
+
+      expect(loggerWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it('@Paginated() + null data → Logger.warn', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(null)),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@Paginated()'),
+      );
+    });
+
+    it('@Paginated() + undefined data → Logger.warn', async () => {
+      jest.spyOn(reflector, 'get').mockImplementation((key) => {
+        if (key === PAGINATED_KEY) return true;
+        return undefined;
+      });
+      const interceptor = createInterceptor();
+      const ctx = createMockExecutionContext();
+
+      await lastValueFrom(
+        interceptor.intercept(ctx, createMockCallHandler(undefined)),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('@Paginated()'),
+      );
     });
   });
 });

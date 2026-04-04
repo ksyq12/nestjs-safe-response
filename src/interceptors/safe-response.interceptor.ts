@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Logger,
   NestInterceptor,
   Optional,
 } from '@nestjs/common';
@@ -59,6 +60,7 @@ import {
 export class SafeResponseInterceptor implements NestInterceptor {
   private readonly getClsService: () => unknown | null;
   private readonly getI18nAdapter: () => I18nAdapter | null;
+  private readonly logger = new Logger(SafeResponseInterceptor.name);
 
   constructor(
     private readonly reflector: Reflector,
@@ -221,6 +223,31 @@ export class SafeResponseInterceptor implements NestInterceptor {
           }
           response.data = data.data;
           meta.pagination = pagination;
+        }
+
+        // Shape-mismatch warnings
+        if (!(this.options.suppressWarnings ?? false)) {
+          const route = `${(request as unknown as { method?: string }).method ?? 'UNKNOWN'} ${request.url ?? ''}`;
+          if (paginatedOptions && !this.isPaginatedResult(data)) {
+            this.logger.warn(
+              `@Paginated() on ${route}: handler returned data that does not match PaginatedResult shape. Expected { data: T[], total: number, page: number, limit: number }. Pagination metadata will be skipped.`,
+            );
+          }
+          if (cursorPaginatedOptions && !this.isCursorPaginatedResult(data)) {
+            this.logger.warn(
+              `@CursorPaginated() on ${route}: handler returned data that does not match CursorPaginatedResult shape. Expected { data: T[], nextCursor: string|null, hasMore: boolean, limit: number }. Pagination metadata will be skipped.`,
+            );
+          }
+          if (includeSortMeta && !(data && typeof data === 'object' && 'sort' in data && data.sort)) {
+            this.logger.warn(
+              `@SortMeta() on ${route}: handler returned data without a 'sort' field. Sort metadata will be skipped.`,
+            );
+          }
+          if (includeFilterMeta && !(data && typeof data === 'object' && 'filters' in data && data.filters)) {
+            this.logger.warn(
+              `@FilterMeta() on ${route}: handler returned data without a 'filters' field. Filter metadata will be skipped.`,
+            );
+          }
         }
 
         // Sort/Filter metadata
