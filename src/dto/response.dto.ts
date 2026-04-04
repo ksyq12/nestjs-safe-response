@@ -192,6 +192,9 @@ export class ErrorResponseMetaDto {
 
   @ApiPropertyOptional({ type: RateLimitMetaDto, description: 'Rate limit status' })
   rateLimit?: RateLimitMetaDto;
+
+  /** Additional context fields (e.g., traceId, correlationId) injected via CLS */
+  [key: string]: unknown;
 }
 
 export class SafeErrorResponseDto {

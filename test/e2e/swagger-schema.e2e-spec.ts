@@ -282,12 +282,14 @@ describe('Swagger Schema E2E', () => {
       expect(document.components.schemas.ProblemDetailsDto).toBeDefined();
     });
 
-    it('@ApiSafeProblemResponse(404) → application/problem+json content type', () => {
+    it('@ApiSafeProblemResponse(404) → application/problem+json content type with status-specific examples', () => {
       const responses = document.paths['/swagger-test/problem-details'].get.responses;
       expect(responses['404']).toBeDefined();
       expect(responses['404'].content['application/problem+json']).toBeDefined();
       const schema = responses['404'].content['application/problem+json'].schema;
-      expect(schema.$ref).toContain('ProblemDetailsDto');
+      expect(schema.allOf[0].$ref).toContain('ProblemDetailsDto');
+      expect(schema.allOf[1].properties.status.example).toBe(404);
+      expect(schema.allOf[1].properties.code.example).toBe('NOT_FOUND');
     });
 
     it('@ApiSafeProblemResponse(400) → 기본 description', () => {

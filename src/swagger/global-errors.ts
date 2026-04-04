@@ -1,4 +1,4 @@
-import { lookupErrorCode } from '../constants';
+import { lookupErrorCode, lookupProblemTitle } from '../constants';
 import { SafeResponseModuleOptions, ApiSafeErrorResponseConfig } from '../interfaces';
 
 // @nestjs/swagger exports OpenAPIObject but not its nested types (PathItemObject,
@@ -122,12 +122,23 @@ function buildErrorResponse(
   useProblemDetails: boolean,
 ): ResponseShape {
   if (useProblemDetails) {
+    const title = lookupProblemTitle(status) ?? 'Error';
     return {
       description,
       content: {
         'application/problem+json': {
           schema: {
-            $ref: '#/components/schemas/ProblemDetailsDto',
+            allOf: [
+              { $ref: '#/components/schemas/ProblemDetailsDto' },
+              {
+                properties: {
+                  status: { type: 'number', example: status },
+                  title: { type: 'string', example: title },
+                  code: { type: 'string', example: code },
+                  detail: { type: 'string', example: message },
+                },
+              },
+            ],
           },
         },
       },

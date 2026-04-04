@@ -465,7 +465,10 @@ describe('ApiSafeProblemResponse', () => {
     expect(meta[404].description).toBe('Problem Details (404)');
     expect(meta[404].content).toBeDefined();
     expect(meta[404].content['application/problem+json']).toBeDefined();
-    expect(meta[404].content['application/problem+json'].schema.$ref).toContain('ProblemDetailsDto');
+    const schema = meta[404].content['application/problem+json'].schema;
+    expect(schema.allOf[0].$ref).toContain('ProblemDetailsDto');
+    expect(schema.allOf[1].properties.status.example).toBe(404);
+    expect(schema.allOf[1].properties.code.example).toBe('NOT_FOUND');
   });
 
   it('커스텀 description 지원', () => {

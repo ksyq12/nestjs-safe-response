@@ -7,7 +7,7 @@ import {
   ApiResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY, PROBLEM_TYPE_KEY, SORT_META_KEY, FILTER_META_KEY, SKIP_GLOBAL_ERRORS_KEY, DEPRECATED_KEY, lookupErrorCode } from '../constants';
+import { RAW_RESPONSE_KEY, PAGINATED_KEY, RESPONSE_MESSAGE_KEY, SUCCESS_CODE_KEY, CURSOR_PAGINATED_KEY, PROBLEM_TYPE_KEY, SORT_META_KEY, FILTER_META_KEY, SKIP_GLOBAL_ERRORS_KEY, DEPRECATED_KEY, lookupErrorCode, lookupProblemTitle } from '../constants';
 import {
   SafeSuccessResponseDto,
   SafeErrorResponseDto,
@@ -331,8 +331,9 @@ export const Deprecated = (options?: DeprecatedOptions) =>
 /**
  * Document an RFC 9457 Problem Details error response in Swagger.
  *
- * When `code`, `message`, or `details` are provided, the schema merges
- * ProblemDetailsDto with inline example overrides via `allOf`.
+ * Always generates status-specific examples (status, title, code) via `allOf`
+ * composition with ProblemDetailsDto. When `code`, `message`, or `details`
+ * are provided, those override the auto-resolved defaults.
  */
 export function ApiSafeProblemResponse(
   status: number,
@@ -341,23 +342,16 @@ export function ApiSafeProblemResponse(
   const description =
     options?.description ?? `Problem Details (${status})`;
 
-  const hasOverrides = options?.code || options?.message || options?.details !== undefined;
+  const code = options?.code ?? lookupErrorCode(status) ?? 'INTERNAL_SERVER_ERROR';
+  const title = lookupProblemTitle(status) ?? 'Error';
 
-  const schema = hasOverrides
-    ? {
-        allOf: [
-          { $ref: getSchemaPath(ProblemDetailsDto) },
-          {
-            properties: {
-              status: { type: 'number' as const, example: status },
-              ...(options?.code && { code: { type: 'string' as const, example: options.code } }),
-              ...(options?.message && { detail: { type: 'string' as const, example: options.message } }),
-              ...(options?.details !== undefined && { details: inferDetailsSchema(options.details) }),
-            },
-          },
-        ],
-      }
-    : { $ref: getSchemaPath(ProblemDetailsDto) };
+  const overrideProps = {
+    status: { type: 'number' as const, example: status },
+    title: { type: 'string' as const, example: title },
+    code: { type: 'string' as const, example: code },
+    ...(options?.message && { detail: { type: 'string' as const, example: options.message } }),
+    ...(options?.details !== undefined && { details: inferDetailsSchema(options.details) }),
+  };
 
   return applyDecorators(
     ApiExtraModels(ProblemDetailsDto),
@@ -365,7 +359,14 @@ export function ApiSafeProblemResponse(
       status,
       description,
       content: {
-        'application/problem+json': { schema },
+        'application/problem+json': {
+          schema: {
+            allOf: [
+              { $ref: getSchemaPath(ProblemDetailsDto) },
+              { properties: overrideProps },
+            ],
+          },
+        },
       },
     }),
   );

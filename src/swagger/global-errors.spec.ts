@@ -318,7 +318,9 @@ describe('applyGlobalErrors', () => {
 
       const schema = doc.paths['/api/users'].get.responses['404']
         .content['application/problem+json'].schema;
-      expect(schema.$ref).toBe('#/components/schemas/ProblemDetailsDto');
+      expect(schema.allOf[0].$ref).toBe('#/components/schemas/ProblemDetailsDto');
+      expect(schema.allOf[1].properties.status.example).toBe(404);
+      expect(schema.allOf[1].properties.code.example).toBe('NOT_FOUND');
     });
 
     it('should ensure ProblemDetailsDto schema in components', () => {
