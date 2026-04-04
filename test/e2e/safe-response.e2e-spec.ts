@@ -18,6 +18,7 @@ import {
   TestAppProblemDetailsBaseUrlModule,
   TestAppProblemDetailsFullModule,
   TestAppRateLimitModule,
+  TestAppCustomErrorCodesModule,
 } from './test-app.module';
 
 describe('SafeResponse E2E', () => {
@@ -706,6 +707,48 @@ describe('SafeResponse E2E', () => {
         .expect(200);
 
       expect(res.body.meta?.rateLimit).toBeUndefined();
+    });
+  });
+
+  // ─── Composite decorators ───
+
+  describe('composite decorators', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppModule);
+    });
+
+    it('GET /test/composite-paginated → works like manual @Paginated + @ApiPaginatedSafeResponse', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/composite-paginated')
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual([{ id: 1 }, { id: 2 }]);
+      expect(res.body.meta.pagination).toMatchObject({
+        type: 'offset',
+        page: 1,
+        limit: 10,
+        total: 20,
+        totalPages: 2,
+        hasNext: true,
+        hasPrev: false,
+      });
+    });
+  });
+
+  // ─── Error code resolution chain ───
+
+  describe('declarative error codes', () => {
+    beforeEach(async () => {
+      app = await createApp(TestAppCustomErrorCodesModule);
+    });
+
+    it('errorCodes option overrides default NOT_FOUND → RESOURCE_NOT_FOUND', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/test/not-found')
+        .expect(404);
+
+      expect(res.body.error.code).toBe('RESOURCE_NOT_FOUND');
     });
   });
 });

@@ -14,8 +14,15 @@ import {
   SuccessCode,
   ProblemType,
   Deprecated,
+  SafePaginatedEndpoint,
 } from '../../src/decorators';
+import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
+
+class ItemDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+}
 
 class UserResponse {
   id!: number;
@@ -198,5 +205,22 @@ export class TestController {
   @Deprecated({ sunset: '2026-12-31T00:00:00.000Z' })
   findDeprecatedError() {
     throw new NotFoundException('Resource not found');
+  }
+
+  @Get('composite-paginated')
+  @SafePaginatedEndpoint(ItemDto, { maxLimit: 50 })
+  compositePaginated() {
+    return {
+      data: [{ id: 1 }, { id: 2 }],
+      total: 20,
+      page: 1,
+      limit: 10,
+    };
+  }
+
+  @Get('paginated-wrong-shape')
+  @Paginated()
+  paginatedWrongShape() {
+    return { id: 1, name: 'Not paginated' };
   }
 }

@@ -191,3 +191,13 @@ export class TestAppRateLimitModule implements NestModule {
       .forRoutes('*');
   }
 }
+
+@Module({
+  imports: [
+    SafeResponseModule.register({
+      errorCodes: { 404: 'RESOURCE_NOT_FOUND' },
+    }),
+  ],
+  controllers: [TestController],
+})
+export class TestAppCustomErrorCodesModule {}
