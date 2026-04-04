@@ -2,15 +2,15 @@
   "name": "nestjs-safe-response",
   "version": "0.13.0",
   "description": "Standardized API response wrapper for NestJS with Swagger integration, pagination, and custom error code mapping",
-  "author": "ksyq12",
+  "author": "nestarc",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ksyq12/nestjs-safe-response.git"
+    "url": "https://github.com/nestarc/nestjs-safe-response.git"
   },
-  "homepage": "https://github.com/ksyq12/nestjs-safe-response#readme",
+  "homepage": "https://github.com/nestarc/nestjs-safe-response#readme",
   "bugs": {
-    "url": "https://github.com/ksyq12/nestjs-safe-response/issues"
+    "url": "https://github.com/nestarc/nestjs-safe-response/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
