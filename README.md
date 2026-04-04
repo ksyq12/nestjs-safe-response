@@ -1,10 +1,10 @@
-# nestjs-safe-response
+# @nestarc/safe-response
 
 [![CI](https://github.com/nestarc/nestjs-safe-response/actions/workflows/ci.yml/badge.svg)](https://github.com/nestarc/nestjs-safe-response/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/nestjs-safe-response.svg)](https://www.npmjs.com/package/nestjs-safe-response)
-[![npm downloads](https://img.shields.io/npm/dm/nestjs-safe-response.svg)](https://www.npmjs.com/package/nestjs-safe-response)
-[![license](https://img.shields.io/npm/l/nestjs-safe-response.svg)](https://github.com/nestarc/nestjs-safe-response/blob/main/LICENSE)
-[![node](https://img.shields.io/node/v/nestjs-safe-response.svg)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@nestarc/safe-response.svg)](https://www.npmjs.com/package/@nestarc/safe-response)
+[![npm downloads](https://img.shields.io/npm/dm/@nestarc/safe-response.svg)](https://www.npmjs.com/package/@nestarc/safe-response)
+[![license](https://img.shields.io/npm/l/@nestarc/safe-response.svg)](https://github.com/nestarc/nestjs-safe-response/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/@nestarc/safe-response.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 Standardized API response wrapper for NestJS — auto-wraps success/error responses, pagination metadata, and Swagger schema generation with a single module import.
@@ -22,7 +22,7 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 - **RFC 9457 Problem Details** — opt-in standard error format with `application/problem+json`
 - **Swagger integration** — `@ApiSafeResponse(Dto)` for success schemas, `@ApiSafeErrorResponse()` / `@ApiSafeErrorResponses()` for error schemas — all with the wrapped envelope
 - **Global error Swagger** — `applyGlobalErrors()` injects common error responses (401, 403, 500) into all OpenAPI operations
-- **Frontend client types** — `nestjs-safe-response/client` provides zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isProblemDetailsResponse`, `hasResponseTime`, `hasSort`, `hasFilters`, `isDeprecated`, `hasRateLimit`) for frontend consumers
+- **Frontend client types** — `@nestarc/safe-response/client` provides zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isProblemDetailsResponse`, `hasResponseTime`, `hasSort`, `hasFilters`, `isDeprecated`, `hasRateLimit`) for frontend consumers
 - **nestjs-i18n integration** — automatic error/success message translation via adapter pattern
 - **API deprecation** — `@Deprecated()` decorator with RFC 9745/8594 `Deprecation`/`Sunset` headers, Swagger `deprecated: true`, and response `meta.deprecation`
 - **Rate limit metadata** — opt-in `meta.rateLimit` mirroring of `X-RateLimit-*` response headers for frontend consumption
@@ -40,7 +40,7 @@ Standardized API response wrapper for NestJS — auto-wraps success/error respon
 ## Installation
 
 ```bash
-npm install nestjs-safe-response
+npm install @nestarc/safe-response
 ```
 
 ### Peer Dependencies
@@ -53,7 +53,7 @@ npm install @nestjs/common @nestjs/core @nestjs/swagger rxjs reflect-metadata
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { SafeResponseModule } from 'nestjs-safe-response';
+import { SafeResponseModule } from '@nestarc/safe-response';
 
 @Module({
   imports: [SafeResponseModule.register()],
@@ -471,7 +471,7 @@ Inject common error responses (e.g., 401, 403, 500) into all OpenAPI operations 
 
 ```typescript
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { applyGlobalErrors, SafeResponseModule } from 'nestjs-safe-response';
+import { applyGlobalErrors, SafeResponseModule } from '@nestarc/safe-response';
 
 // 1. Register with swagger option
 SafeResponseModule.register({
@@ -569,15 +569,15 @@ Error response:
 
 ## Frontend Client Types
 
-`nestjs-safe-response/client` provides zero-dependency TypeScript types and type guards for frontend consumers. No NestJS, Swagger, or `reflect-metadata` required.
+`@nestarc/safe-response/client` provides zero-dependency TypeScript types and type guards for frontend consumers. No NestJS, Swagger, or `reflect-metadata` required.
 
 ```typescript
-import type { SafeAnyResponse } from 'nestjs-safe-response/client';
+import type { SafeAnyResponse } from '@nestarc/safe-response/client';
 import {
   isSuccess, isError, isPaginated, isOffsetPagination, isCursorPagination,
   isProblemDetailsResponse, hasResponseTime, hasSort, hasFilters,
   isDeprecated, hasRateLimit,
-} from 'nestjs-safe-response/client';
+} from '@nestarc/safe-response/client';
 
 // SafeAnyResponse includes success, error, and Problem Details responses
 const res: SafeAnyResponse<User[]> = await fetch('/api/users').then(r => r.json());
@@ -805,7 +805,7 @@ SafeResponseModule.register({
 
 ### Using with `class-transformer`
 
-`nestjs-safe-response` works with NestJS's `ClassSerializerInterceptor` when registered in the correct order. `SafeResponseModule` must be imported **before** `ClassSerializerInterceptor` is registered, so that serialization runs first and response wrapping runs second.
+`@nestarc/safe-response` works with NestJS's `ClassSerializerInterceptor` when registered in the correct order. `SafeResponseModule` must be imported **before** `ClassSerializerInterceptor` is registered, so that serialization runs first and response wrapping runs second.
 
 ```typescript
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
@@ -853,7 +853,7 @@ Resolution order: `errorCodeMapper` > `errorCodes` > `DEFAULT_ERROR_CODE_MAP` > 
 ### Utility Functions
 
 ```typescript
-import { lookupErrorCode, lookupProblemTitle } from 'nestjs-safe-response';
+import { lookupErrorCode, lookupProblemTitle } from '@nestarc/safe-response';
 
 lookupErrorCode(404);      // 'NOT_FOUND'
 lookupProblemTitle(404);   // 'Not Found'
@@ -924,7 +924,7 @@ Swagger `components/schemas` and `paths` are snapshot-tested. Any unintended sch
 
 Example benchmark results (`npm run bench`, 500 iterations, single run on one machine — your results will vary):
 
-| Path | Raw NestJS | With nestjs-safe-response | Overhead |
+| Path | Raw NestJS | With @nestarc/safe-response | Overhead |
 |------|-----------|--------------------------|----------|
 | Success (200) | ~0.5ms | ~0.6ms | **< 0.1ms** |
 | Error (404) | ~0.7ms | ~0.6ms | **negligible** |

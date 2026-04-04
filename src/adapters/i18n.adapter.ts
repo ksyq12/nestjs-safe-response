@@ -1,6 +1,6 @@
 /**
  * Interface for i18n adapters.
- * Implementations bridge the gap between nestjs-safe-response and i18n libraries.
+ * Implementations bridge the gap between @nestarc/safe-response and i18n libraries.
  */
 export interface I18nAdapter {
   /** Translate a message key to the target language */

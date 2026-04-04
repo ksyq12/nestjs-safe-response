@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`SafeAnyResponse<T>` client type** — broader union `SafeSuccessResponse<T> | SafeErrorResponse | SafeProblemDetailsResponse` for consumers using Problem Details mode. The existing `SafeResponse<T>` (success | error only) is unchanged.
-- **Client ↔ Server type sync tests** — bidirectional `expectAssignable` assertions in `index.test-d.ts` verify that client types (`nestjs-safe-response/client`) remain structurally compatible with server types. Catches type drift at build time.
+- **Client ↔ Server type sync tests** — bidirectional `expectAssignable` assertions in `index.test-d.ts` verify that client types (`@nestarc/safe-response/client`) remain structurally compatible with server types. Catches type drift at build time.
 - 3 new unit tests for Problem Details title translation (translated, default English, adapter exception fallback)
 - 8 new unit tests for `extractRateLimitMeta` shared utility
 - 6 new unit tests for `SortMeta`, `FilterMeta`, `ApiSafeProblemResponse` decorators
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeprecatedOptions`, `DeprecationMeta`, `RateLimitOptions`, `RateLimitMeta` type exports
 - `DeprecationMetaDto`, `RateLimitMetaDto` Swagger DTO classes
 - `DEPRECATED_KEY` constant export
-- Client type guards: `isDeprecated(meta)` and `hasRateLimit(meta)` in `nestjs-safe-response/client`
+- Client type guards: `isDeprecated(meta)` and `hasRateLimit(meta)` in `@nestarc/safe-response/client`
 - `getResponseHeader()` platform-agnostic response header reader in shared utilities
 
 ### Changed
@@ -81,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.10.0] - 2026-04-01
 
 ### Added
-- **Client type guards** — `isProblemDetailsResponse()`, `hasResponseTime()`, `hasSort()`, `hasFilters()` in `nestjs-safe-response/client` for discriminating RFC 9457 responses and checking response meta field presence. Guards validate structural shape (e.g., `hasSort` checks `field: string` + `order: 'asc'|'desc'`; `isProblemDetailsResponse` checks all 5 required RFC 9457 fields including `instance`).
+- **Client type guards** — `isProblemDetailsResponse()`, `hasResponseTime()`, `hasSort()`, `hasFilters()` in `@nestarc/safe-response/client` for discriminating RFC 9457 responses and checking response meta field presence. Guards validate structural shape (e.g., `hasSort` checks `field: string` + `order: 'asc'|'desc'`; `isProblemDetailsResponse` checks all 5 required RFC 9457 fields including `instance`).
 - **Fastify E2E test parity** — 30 new Fastify E2E tests covering cursor pagination, request ID tracking, sort/filter metadata, custom date formatter, transformResponse, success code mapping, edge cases, and `@Exclude()` interop. Fastify E2E now matches Express at 44 tests each.
 - `I18nServiceLike` interface export — minimal structural type for nestjs-i18n's `I18nService`, enabling type-safe adapter construction without compile-time dependency.
 - Internal: shared utility module (`src/shared/`) with `createClsServiceResolver()`, `createI18nAdapterResolver()`, `resolveContextMeta()`, `sanitizeRequestId()`, `setResponseHeader()` — eliminates ~160 lines of duplication between interceptor and filter.
@@ -106,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-03-31
 
 ### Added
-- **Frontend client types** (`nestjs-safe-response/client`) — zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isOffsetPagination`, `isCursorPagination`) for frontend consumers. New `SafeResponse<T>` union type.
+- **Frontend client types** (`@nestarc/safe-response/client`) — zero-dependency TypeScript types and type guards (`isSuccess`, `isError`, `isPaginated`, `isOffsetPagination`, `isCursorPagination`) for frontend consumers. New `SafeResponse<T>` union type.
 - **Sort/Filter metadata** — `@SortMeta()` and `@FilterMeta()` decorators to include sorting and filtering information in response `meta`. Works with both offset and cursor pagination.
 - **Global error Swagger documentation** — `applyGlobalErrors(document, options)` utility to inject common error responses (e.g., 401, 403, 500) into all OpenAPI operations. `@SkipGlobalErrors()` decorator to exclude specific routes.
 - **nestjs-i18n integration** — `i18n` module option with `I18nAdapter` interface for automatic error message and `@ResponseMessage()` translation. Built-in `NestI18nAdapter` for nestjs-i18n, or pass a custom adapter.
@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@SkipGlobalErrors()` decorator (runtime + Swagger `x-skip-global-errors` extension)
 - `SortMetaDto`, `FilterMetaDto` Swagger DTO classes
 - `SortInfo`, `SwaggerOptions`, `ContextOptions` type exports
-- `I18nAdapter`, `NestI18nAdapter` exports from `nestjs-safe-response`
+- `I18nAdapter`, `NestI18nAdapter` exports from `@nestarc/safe-response`
 - `applyGlobalErrors` utility export
 - `SORT_META_KEY`, `FILTER_META_KEY`, `SKIP_GLOBAL_ERRORS_KEY` constant exports
 - `package.json` `exports` map with `"./client"` subpath entry point

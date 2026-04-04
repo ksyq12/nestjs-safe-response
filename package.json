@@ -1,5 +1,5 @@
 {
-  "name": "nestjs-safe-response",
+  "name": "@nestarc/safe-response",
   "version": "0.13.0",
   "description": "Standardized API response wrapper for NestJS with Swagger integration, pagination, and custom error code mapping",
   "author": "nestarc",
@@ -87,6 +87,9 @@
     "tsd": "^0.33.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.58.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=18"

@@ -115,7 +115,7 @@ export class SafeResponseInterceptor implements NestInterceptor {
 
     if (paginatedOptions && cursorPaginatedOptions) {
       throw new Error(
-        'nestjs-safe-response: @Paginated() and @CursorPaginated() cannot both be applied to the same route handler.',
+        '@nestarc/safe-response: @Paginated() and @CursorPaginated() cannot both be applied to the same route handler.',
       );
     }
 

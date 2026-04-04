@@ -1,13 +1,13 @@
 /**
- * nestjs-safe-response/client
+ * @nestarc/safe-response/client
  *
  * Lightweight client-side types and type guards for consuming API responses.
  * This module has ZERO runtime dependencies — no NestJS, no Swagger, no reflect-metadata.
  *
  * @example
  * ```typescript
- * import type { SafeSuccessResponse, SafeErrorResponse } from 'nestjs-safe-response/client';
- * import { isSuccess, isError } from 'nestjs-safe-response/client';
+ * import type { SafeSuccessResponse, SafeErrorResponse } from '@nestarc/safe-response/client';
+ * import { isSuccess, isError } from '@nestarc/safe-response/client';
  *
  * const res = await fetch('/api/users').then(r => r.json());
  * if (isSuccess(res)) {
