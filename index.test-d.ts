@@ -535,3 +535,15 @@ expectAssignable<SafeErrorResponse>(syncClientError);
 
 declare const syncClientProblem: SyncClientProblem;
 expectAssignable<SafeProblemDetailsResponse>(syncClientProblem);
+
+// ─── Const assertion on DEFAULT_ERROR_CODE_MAP ───
+
+import { DEFAULT_ERROR_CODE_MAP, DEFAULT_PROBLEM_TITLE_MAP } from './dist';
+
+// Values should be literal string types, not just `string`
+expectType<'BAD_REQUEST'>(DEFAULT_ERROR_CODE_MAP[400]);
+expectType<'NOT_FOUND'>(DEFAULT_ERROR_CODE_MAP[404]);
+expectType<'INTERNAL_SERVER_ERROR'>(DEFAULT_ERROR_CODE_MAP[500]);
+
+expectType<'Bad Request'>(DEFAULT_PROBLEM_TITLE_MAP[400]);
+expectType<'Not Found'>(DEFAULT_PROBLEM_TITLE_MAP[404]);

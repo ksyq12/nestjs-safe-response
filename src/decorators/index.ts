@@ -150,7 +150,7 @@ export function ApiSafeErrorResponse(
   options?: ApiSafeErrorResponseOptions,
 ): MethodDecorator {
   const code =
-    options?.code ?? DEFAULT_ERROR_CODE_MAP[status] ?? 'INTERNAL_SERVER_ERROR';
+    options?.code ?? (DEFAULT_ERROR_CODE_MAP as Record<number, string | undefined>)[status] ?? 'INTERNAL_SERVER_ERROR';
   const message = options?.message ?? 'An error occurred';
   const description = options?.description ?? `Error response (${status})`;
 

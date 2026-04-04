@@ -123,7 +123,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
     }
 
     if (!errorCode) {
-      errorCode = DEFAULT_ERROR_CODE_MAP[statusCode] ?? 'INTERNAL_SERVER_ERROR';
+      errorCode = (DEFAULT_ERROR_CODE_MAP as Record<number, string | undefined>)[statusCode] ?? 'INTERNAL_SERVER_ERROR';
     }
 
     // Resolve request ID
@@ -174,7 +174,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
       if (problemType) {
         type = problemType;
       } else if (config.baseUrl) {
-        type = `${config.baseUrl}/${errorCode.toLowerCase().replace(/_/g, '-')}`;
+        type = `${config.baseUrl}/${errorCode!.toLowerCase().replace(/_/g, '-')}`;
       } else {
         type = 'about:blank';
       }
@@ -188,7 +188,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
       const problemBody: SafeProblemDetailsResponse = {
         type,
-        title: this.translateMessage(DEFAULT_PROBLEM_TITLE_MAP[statusCode] ?? 'Error', request),
+        title: this.translateMessage((DEFAULT_PROBLEM_TITLE_MAP as Record<number, string | undefined>)[statusCode] ?? 'Error', request),
         status: statusCode,
         detail: translatedMessage,
         instance: requestUrl,
@@ -211,7 +211,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
       statusCode,
       ...(requestId && { requestId }),
       error: {
-        code: errorCode,
+        code: errorCode!,
         message: translatedMessage,
         ...(details !== undefined && { details }),
       },

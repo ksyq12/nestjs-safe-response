@@ -22,7 +22,7 @@ export const SKIP_GLOBAL_ERRORS_KEY = 'SKIP_GLOBAL_ERRORS';
 /** @internal Decorator metadata key. Will be removed from public exports in v1.0.0. */
 export const DEPRECATED_KEY = 'DEPRECATED';
 
-export const DEFAULT_PROBLEM_TITLE_MAP: Record<number, string> = {
+export const DEFAULT_PROBLEM_TITLE_MAP = {
   400: 'Bad Request',
   401: 'Unauthorized',
   403: 'Forbidden',
@@ -34,9 +34,9 @@ export const DEFAULT_PROBLEM_TITLE_MAP: Record<number, string> = {
   500: 'Internal Server Error',
   502: 'Bad Gateway',
   503: 'Service Unavailable',
-};
+} as const;
 
-export const DEFAULT_ERROR_CODE_MAP: Record<number, string> = {
+export const DEFAULT_ERROR_CODE_MAP = {
   400: 'BAD_REQUEST',
   401: 'UNAUTHORIZED',
   403: 'FORBIDDEN',
@@ -48,4 +48,4 @@ export const DEFAULT_ERROR_CODE_MAP: Record<number, string> = {
   500: 'INTERNAL_SERVER_ERROR',
   502: 'BAD_GATEWAY',
   503: 'SERVICE_UNAVAILABLE',
-};
+} as const;
