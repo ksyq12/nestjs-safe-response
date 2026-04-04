@@ -7,13 +7,13 @@ export class PaginationLinksDto {
   @ApiProperty({ example: '/api/users?page=1&limit=20' })
   first!: string;
 
-  @ApiProperty({ example: '/api/users?page=1&limit=20', nullable: true })
+  @ApiProperty({ type: String, example: '/api/users?page=1&limit=20', nullable: true })
   prev!: string | null;
 
-  @ApiProperty({ example: '/api/users?page=3&limit=20', nullable: true })
+  @ApiProperty({ type: String, example: '/api/users?page=3&limit=20', nullable: true })
   next!: string | null;
 
-  @ApiProperty({ example: '/api/users?page=5&limit=20', nullable: true })
+  @ApiProperty({ type: String, example: '/api/users?page=5&limit=20', nullable: true })
   last!: string | null;
 }
 
@@ -47,10 +47,10 @@ export class CursorPaginationMetaDto {
   @ApiProperty({ example: 'cursor', enum: ['cursor'] })
   type!: 'cursor';
 
-  @ApiProperty({ example: 'eyJpZCI6MTAwfQ==', nullable: true })
+  @ApiProperty({ type: String, example: 'eyJpZCI6MTAwfQ==', nullable: true })
   nextCursor!: string | null;
 
-  @ApiProperty({ example: null, nullable: true })
+  @ApiProperty({ type: String, example: null, nullable: true })
   previousCursor!: string | null;
 
   @ApiProperty({ example: true })

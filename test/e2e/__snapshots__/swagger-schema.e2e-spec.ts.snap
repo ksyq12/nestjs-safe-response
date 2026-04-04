@@ -18,12 +18,12 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
       "nextCursor": {
         "example": "eyJpZCI6MTAwfQ==",
         "nullable": true,
-        "type": "object",
+        "type": "string",
       },
       "previousCursor": {
         "example": null,
         "nullable": true,
-        "type": "object",
+        "type": "string",
       },
       "totalCount": {
         "example": 150,
@@ -138,17 +138,17 @@ exports[`Swagger Schema E2E API 계약 스냅샷 components/schemas가 변경되
       "last": {
         "example": "/api/users?page=5&limit=20",
         "nullable": true,
-        "type": "object",
+        "type": "string",
       },
       "next": {
         "example": "/api/users?page=3&limit=20",
         "nullable": true,
-        "type": "object",
+        "type": "string",
       },
       "prev": {
         "example": "/api/users?page=1&limit=20",
         "nullable": true,
-        "type": "object",
+        "type": "string",
       },
       "self": {
         "example": "/api/users?page=2&limit=20",

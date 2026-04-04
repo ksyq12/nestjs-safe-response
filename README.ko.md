@@ -870,11 +870,11 @@ SafeResponseModule.register({
 
 | 카테고리 | 수량 | 검증 범위 |
 |----------|------|-----------|
-| 단위 테스트 | 388 | Interceptor, Exception Filter, Module DI, Decorators, Client Type Guards, i18n Adapter, Global Errors, Shared Utilities |
-| E2E 테스트 (Express) | 44 | 전체 HTTP 요청/응답 사이클 |
-| E2E 테스트 (Fastify) | 44 | Express와 완전 동일한 기능 검증 — 전체 플랫폼 패리티 |
-| E2E 테스트 (Swagger) | 40 | Problem Details, Global Errors 포함 OpenAPI 스키마 출력 검증 |
-| 타입 테스트 | 84 | `tsd`로 Public API 타입 시그니처 검증 (클라이언트 타입 가드 + v0.10.0 추가분 포함) |
+| 단위 테스트 | 427 | Interceptor, Exception Filter, Module DI, Decorators, Client Type Guards, i18n Adapter, Global Errors, Shared Utilities |
+| E2E 테스트 (Express) | 51 | 복합 데코레이터, 선언적 에러 코드 포함 전체 HTTP 요청/응답 사이클 |
+| E2E 테스트 (Fastify) | 51 | Express와 완전 동일한 기능 검증 — 전체 플랫폼 패리티 |
+| E2E 테스트 (Swagger) | 41 | Problem Details, Global Errors 포함 OpenAPI 스키마 출력 검증 |
+| 타입 테스트 | 84 | `tsd`로 Public API 타입 시그니처 검증 (클라이언트 타입 가드 + 복합 데코레이터 옵션 포함) |
 | 스냅샷 | 2 | Swagger `components/schemas` + `paths` 회귀 감지 |
 
 ```bash
