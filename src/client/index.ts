@@ -104,6 +104,7 @@ export interface SafeErrorResponse {
     responseTime?: number;
     deprecation?: DeprecationMeta;
     rateLimit?: RateLimitMeta;
+    apiVersion?: string;
     [key: string]: unknown;
   };
   timestamp?: string;
@@ -123,6 +124,7 @@ export interface SafeProblemDetailsResponse {
     responseTime?: number;
     deprecation?: DeprecationMeta;
     rateLimit?: RateLimitMeta;
+    apiVersion?: string;
     [key: string]: unknown;
   };
 }

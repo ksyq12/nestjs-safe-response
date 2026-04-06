@@ -21,6 +21,9 @@ import type {
   DeprecationMeta,
   RateLimitOptions,
   RateLimitMeta,
+  ErrorDefinition,
+  ErrorCatalog,
+  FieldSelectionOptions,
 } from './dist';
 import { applyGlobalErrors } from './dist';
 import type { OpenAPIObject } from '@nestjs/swagger';
@@ -613,3 +616,99 @@ const cursorPaginatedOpts: SafeCursorPaginatedEndpointOptions = {
   links: true,
 };
 void cursorPaginatedOpts;
+
+// ─── v0.14.0: apiVersion / fields on ResponseMeta ───
+
+// Server ResponseMeta should have apiVersion and fields
+const metaWithVersion: ResponseMeta = { apiVersion: '2.1.0' };
+expectType<string | undefined>(metaWithVersion.apiVersion);
+
+const metaWithFields: ResponseMeta = { fields: ['id', 'name'] };
+expectType<string[] | undefined>(metaWithFields.fields);
+
+// Server SafeErrorResponse.meta should have apiVersion
+const errorWithVersion: SafeErrorResponse = {
+  success: false,
+  statusCode: 404,
+  error: { code: 'NOT_FOUND', message: 'Not found' },
+  meta: { apiVersion: '2.1.0' },
+};
+expectType<string | undefined>(errorWithVersion.meta?.apiVersion);
+
+// Server SafeProblemDetailsResponse.meta should have apiVersion
+const problemWithVersion: SafeProblemDetailsResponse = {
+  type: 'about:blank',
+  title: 'Not Found',
+  status: 404,
+  detail: 'Not found',
+  instance: '/test',
+  meta: { apiVersion: '3.0.0' },
+};
+expectType<string | undefined>(problemWithVersion.meta?.apiVersion);
+
+// Client ResponseMeta should have apiVersion and fields
+const clientMetaVersion: ClientMeta = { apiVersion: '1.0.0', fields: ['id'] };
+expectType<string | undefined>(clientMetaVersion.apiVersion);
+expectType<string[] | undefined>(clientMetaVersion.fields);
+
+// Client SafeErrorResponse.meta should have apiVersion
+const clientErrorVersion: ClientError = {
+  success: false,
+  statusCode: 500,
+  error: { code: 'ERR', message: 'err' },
+  meta: { apiVersion: '1.0.0' },
+};
+expectType<string | undefined>(clientErrorVersion.meta?.apiVersion);
+
+// Client SafeProblemDetailsResponse.meta should have apiVersion
+const clientProblemVersion: ClientProblem = {
+  type: 'about:blank',
+  title: 'Error',
+  status: 500,
+  detail: 'error',
+  instance: '/test',
+  meta: { apiVersion: '1.0.0' },
+};
+expectType<string | undefined>(clientProblemVersion.meta?.apiVersion);
+
+// ─── v0.14.0: Client hasFieldSelection guard ───
+
+import { hasFieldSelection } from './dist/client';
+
+const metaFieldSelection: ClientMeta = { fields: ['id', 'name'] };
+if (hasFieldSelection(metaFieldSelection)) {
+  expectType<string[]>(metaFieldSelection.fields);
+}
+expectType<boolean>(hasFieldSelection(undefined));
+
+// ─── v0.14.0: Error Catalog types ───
+
+const errorDef: ErrorDefinition = { status: 404, message: 'Not found' };
+expectType<number>(errorDef.status);
+expectType<string>(errorDef.message);
+expectType<string | undefined>(errorDef.description);
+
+const catalog: ErrorCatalog<'A' | 'B'> = {
+  A: { status: 400, message: 'A error' },
+  B: { status: 500, message: 'B error' },
+};
+expectType<ErrorDefinition>(catalog.A);
+
+// ─── v0.14.0: FieldSelectionOptions ───
+
+const fsOpts: FieldSelectionOptions = { queryParam: 'select', separator: ';', maxDepth: 2 };
+expectType<string | undefined>(fsOpts.queryParam);
+expectType<string | undefined>(fsOpts.separator);
+expectType<number | undefined>(fsOpts.maxDepth);
+
+// Module option
+const optsWithFieldSelection: SafeResponseModuleOptions = { fieldSelection: true };
+void optsWithFieldSelection;
+const optsWithFieldSelectionObj: SafeResponseModuleOptions = {
+  fieldSelection: { queryParam: 'fields', maxDepth: 5 },
+};
+void optsWithFieldSelectionObj;
+
+// Module option: version
+const optsWithVersion: SafeResponseModuleOptions = { version: '2.0.0' };
+void optsWithVersion;

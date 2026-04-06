@@ -120,6 +120,7 @@ export interface SafeProblemDetailsResponse {
     responseTime?: number;
     deprecation?: DeprecationMeta;
     rateLimit?: RateLimitMeta;
+    apiVersion?: string;
     /** Additional context fields (e.g., traceId, correlationId) */
     [key: string]: unknown;
   };
@@ -169,6 +170,8 @@ export interface ResponseMeta {
   filters?: Record<string, unknown>;
   deprecation?: DeprecationMeta;
   rateLimit?: RateLimitMeta;
+  apiVersion?: string;
+  fields?: string[];
   /** Additional context fields (e.g., traceId, correlationId) */
   [key: string]: unknown;
 }
@@ -197,6 +200,7 @@ export interface SafeErrorResponse {
     responseTime?: number;
     deprecation?: DeprecationMeta;
     rateLimit?: RateLimitMeta;
+    apiVersion?: string;
     /** Additional context fields (e.g., traceId, correlationId) */
     [key: string]: unknown;
   };
