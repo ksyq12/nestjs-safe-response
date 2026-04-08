@@ -30,12 +30,15 @@
   "keywords": [
     "nestjs",
     "response",
+    "response-format",
+    "api-response",
     "interceptor",
-    "decorator",
+    "error-handling",
     "swagger",
     "pagination",
-    "api",
-    "wrapper"
+    "nestjs-interceptor",
+    "nestjs-module",
+    "saas"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
