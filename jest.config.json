@@ -5,14 +5,14 @@
   "transform": {
     "^.+\\.ts$": "ts-jest"
   },
-  "collectCoverageFrom": ["**/*.ts", "!index.ts", "!**/interfaces/**"],
+  "collectCoverageFrom": ["**/*.ts", "!**/index.ts", "!**/interfaces/**"],
   "coverageDirectory": "../coverage",
   "coverageThreshold": {
     "global": {
-      "branches": 80,
-      "functions": 75,
-      "lines": 90,
-      "statements": 90
+      "branches": 90,
+      "functions": 95,
+      "lines": 95,
+      "statements": 95
     }
   },
   "testEnvironment": "node"
